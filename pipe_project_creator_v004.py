@@ -289,8 +289,12 @@ class ProjectCreator:
                     self.software_list_ui[i][5].configure(state=DISABLED)
                 self.software_list_variables[i][3][0].set(software[program]["alternative_ocio"])
 
-            hdris = config_file_content["hdris"]
-            hdri_default = config_file_content["hdri_default"]
+            try:
+                hdris = config_file_content["hdris"]
+                hdri_default = config_file_content["hdri_default"]
+            except KeyError:
+                hdris = []
+                hdri_default = ''
 
             for x in range(len(hdris)-1):
                 self.hdri_add()
