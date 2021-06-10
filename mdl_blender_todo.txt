@@ -1,0 +1,42 @@
+create json file that links to blender file that was used to create this model
+
+
+in shading the models will be sorted by the version in the collection name
+
+
+Model export:
+- blender file for shading? 
+- full alembics for each variation?
+- texturing alembic split materials by variation
+
+- alembic support for loading animations
+- 
+
+separate texturing and shading for each piece or unified?
+- unified requirements:
+	non overlapping uvs
+	alembic with per material split
+	export of textures
+	splitting variations for materials for visibility control only?
+- unified advantages:
+	needs to create textures even for parts which are not visible in variation (sonice sunglass in bathing suit variation) (workaround to have them on separate tiles and don't export these tiles)
+- unified disadvantages:
+
+export model:
+- blender file
+- 3 txt alembics (exploded single mat (for baking and for sharing materials), one splits variation by materials but not exploded (can not share single material accross, allows for quick export deactivation, needs separate bake model), one exploded but all same material) ??? bake models (does this work for mari)
+	
+- can't use animation packages for lookdev with unified method (allow for using them in turntable tool)
+
+export all textures for all variations?
+
+
+Further environment variables:
+- substance template path
+- substance export template
+- blender pipeline plugin
+
+
+creating a new variation collection should also create a new view_layer
+
+enable subcollection by only creating them with a mirror button (careful, setting var (not add) will delete the geo from this var if it is in a subgroup

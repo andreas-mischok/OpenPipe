@@ -1,0 +1,21 @@
+include asset name so that importers can find the folder
+add icon
+errors if user directory is not found
+
+
+- dropdown need to have scrollbar if too long
+- automatically adjust window width in regards to file names if they are too long
+- Tool to launch immediately in render directory
+- Tool to generate turntables
+- tool to render asset checker (channels)
+- add disciplines 'layout, anim, rig'
+
+
+- integrate project config into project folder and have picker to add existing shows?
+- replace "texure_layer" with "channel"
+
+- create folder in the root location
+- edit and duplicate buttons only available if shows are found
+- only allow creation or duplication if root exists
+- remember both last shot and last asset
+- how to handle model and texture variations?

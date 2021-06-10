@@ -1,0 +1,12 @@
+Requirements
+- needs an active installation of Python 3.x (tested on 3.7)
+- software needs to be installed in the same location for all users
+- all PCs accessing the script need a unique name (name of the account that is logged in)
+- textures need to use the following naming convention: channel.colour_space.udim.filetype
+- texture channel names should not exceed 18 characters (this amount of space is allocated in the UIs)
+- subdivisions and material assignments have to be set up in modelling
+
+Limitations:
+- no access restrictions for shows or assets can be given
+- only windows compatibility has been tested
+- needs to run a version of blender 2.91 or later (might work with 2.8 and later, but tested on 2.91)
