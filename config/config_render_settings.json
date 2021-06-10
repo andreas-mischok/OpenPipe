@@ -1,0 +1,83 @@
+{
+  "cycles": {
+    "turntable": {
+      "resolution_x": 1440,
+      "resolution_y": 1440,
+      "device": "GPU",
+      "samples": 512,
+      "preview_samples": 128,
+      "max_bounces": 8,
+      "diffuse_bounces": 2,
+      "glossy_bounces": 2,
+      "transparent_max_bounces": 2,
+      "transmission_bounces": 2,
+      "sample_clamp_indirect": 100,
+      "film_transparent": false,
+      "tile_x": 64,
+      "tile_y": 64,
+      "use_adaptive_sampling": true,
+      "adaptive_threshold": 0.01,
+      "adaptive_min_samples": 0,
+      "use_animated_seed": true,
+      "blur_glossy": 0
+    },
+    "shading": {
+      "resolution_x": 1440,
+      "resolution_y": 1440,
+      "device": "GPU",
+      "samples": 1024,
+      "preview_samples": 256,
+      "max_bounces": 8,
+      "diffuse_bounces": 2,
+      "glossy_bounces": 2,
+      "transparent_max_bounces": 2,
+      "transmission_bounces": 2,
+      "sample_clamp_indirect": 100,
+      "film_transparent": false,
+      "tile_x": 64,
+      "tile_y": 64,
+      "use_adaptive_sampling": true,
+      "adaptive_threshold": 0.03,
+      "adaptive_min_samples": 0,
+      "use_animated_seed": true,
+      "blur_glossy": 0
+    },
+    "flat": {
+      "resolution_x": 1440,
+      "resolution_y": 1440,
+      "device": "GPU",
+      "samples": 1,
+      "preview_samples": 1,
+      "max_bounces": 1,
+      "diffuse_bounces": 0,
+      "glossy_bounces": 0,
+      "transparent_max_bounces": 0,
+      "transmission_bounces": 0,
+      "sample_clamp_indirect": 0,
+      "film_transparent": false,
+      "tile_x": 64,
+      "tile_y": 64,
+      "use_adaptive_sampling": false,
+      "adaptive_threshold": 0.01,
+      "adaptive_min_samples": 0,
+      "use_animated_seed": true,
+      "blur_glossy": 0
+    }
+  },
+  "eevee": {
+    "turntable": {
+      "taa_render_samples": 128,
+      "taa_samples": 32,
+      "use_gtao": true,
+      "gtao_distance": 0.35,
+      "use_bloom": true,
+      "bloom_threshold": 0.95,
+      "bloom_intensity": 0.015,
+      "use_ssr": true,
+      "use_ssr_halfres": false,
+      "ssr_border_fade": 0.1,
+      "ssr_thickness": 0.1,
+      "use_high_quality_normals": true
+    }
+  }
+}

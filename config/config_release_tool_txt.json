@@ -1,0 +1,11 @@
+{
+  "filetypes" : ["png", "exr", "tif", "tiff"],
+  "connections": {
+    "base_color": "clr",
+    "specular_roughness": "spr",
+    "metallic": "mtl",
+    "normal": "nrm",
+    "emission": "emi",
+    "transmission": "trm"
+  }
+}

@@ -1205,6 +1205,8 @@ release abc alongside blender file so that model artists can load blender file?
 
 release exploded texturing alembic
 """
+# TODO If pipeline is opened, and no show exists, run project_editor
+# TODO rename publish to push?
 # TODO copyright of LOGO?
 # TODO red indicator for publish button
 # TODO replace 'extend_path' with os.path.join()

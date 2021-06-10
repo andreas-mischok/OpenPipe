@@ -1,0 +1,24 @@
+{
+  "render_passes": {
+    "use_pass_z": true,
+    "use_pass_mist": false,
+    "use_pass_normal": true,
+
+    "use_pass_diffuse_direct": true,
+    "use_pass_diffuse_indirect": true,
+    "use_pass_diffuse_color": true,
+
+    "use_pass_glossy_direct": true,
+    "use_pass_glossy_indirect": true,
+    "use_pass_glossy_color": true,
+
+    "use_pass_transmission_direct": true,
+    "use_pass_transmission_indirect": true,
+    "use_pass_transmission_color": true,
+
+    "use_pass_emit": true,
+    "use_pass_environment": true,
+    "use_pass_shadow": true,
+    "use_pass_ambient_occlusion": false
+  }
+}
