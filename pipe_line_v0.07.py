@@ -180,7 +180,7 @@ class PipelineUI:
             os.startfile(directory)
 
     def open_pantry_dir_mdl(self):
-        """ Opens the directory of the asset currently selected in the dropdown.
+        """ Opens the active mdl directory of the asset currently selected in the dropdown.
 
         :return:
         """
@@ -210,8 +210,55 @@ class PipelineUI:
         if failed:
             messagebox.showinfo(title='', message="No active MDL version has been found for this stream.")
 
+    def open_pantry_dir_txt(self):
+        """ Opens the active txt directory of the asset currently selected in the dropdown.
+
+        :return:
+        """
+
+        self.store_last_job()
+        department = self.current_department
+
+        failed = True
+        if department == 'build':
+            generate_paths(self)
+
+            variations = os.listdir(self.dir_pipeline_txt)
+
+            if len(variations) != 0:
+                question = MultipleChoice(self, 'TXT', 'Which TXT variation would you like to open?', variations)
+
+                if question.result is not None:
+                    dir_txt_package = os.path.join(self.dir_pipeline_txt, question.result, 'txt_package')
+                    #file_txt_package = os.path.join(self.dir_pipeline_txt, question.result, 'shd_package.json')
+                    failed = False
+                    os.startfile(dir_txt_package)
+                    '''if os.path.isfile(file_txt_package):
+                        with open(file_txt_package, 'r') as json_file:
+                            dict_shd_package = json.load(json_file)
+
+                        active_shd_version = dict_shd_package[self.current_discipline]
+                        if active_shd_version != '':
+                            file_version = os.path.join(self.dir_pipeline_shd, question.result, 'versions',
+                                                        f'{self.current_asset}.{active_shd_version}.json')
+                            with open(file_version, 'r') as json_file:
+                                dict_shd_version = json.load(json_file)
+
+                            version_cur = dict_shd_version["version"]
+                            failed = False
+                            dir_pantry_version = os.path.join(self.dir_pantry_shd, question.result, version_cur)
+                            os.startfile(dir_pantry_version)'''
+
+        if failed:
+            try:
+                if self.ui_child.winfo_exists():
+                    messagebox.showinfo(title='', message="No active TXT version has been found "
+                                                          "for this TXT variation in your stream.")
+            except TclError:
+                pass
+
     def open_pantry_dir_shd(self):
-        """ Opens the directory of the asset currently selected in the dropdown.
+        """ Opens the active shd directory of the asset currently selected in the dropdown.
 
         :return:
         """
@@ -820,7 +867,7 @@ class PipelineUI:
         self.main_ui.title('%s' % self.version)
         self.main_ui.attributes("-alpha", 0.0)
         self.main_ui.geometry(dimensions)
-        ui_title_bar(self, self.ui_proxy, self.main_ui, f'Open Pipeline {self.version}',
+        ui_title_bar(self, self.ui_proxy, self.main_ui, f'Open Pipe {self.version}',
                      r'.\ui\icon_pipe_white_PNG_s.png', self.col_wdw_title)
 
         self.main_ui.resizable(width=True, height=True)
@@ -1054,7 +1101,7 @@ class PipelineUI:
         self.bt_pull.grid(row=0, column=0, columnspan=1, sticky=NSEW, padx=self.default_padding,
                           pady=self.default_padding)
 
-        self.bt_publish = Button(frame_pull_publish, text='Publish', height=2, bg=self.col_bt_bg_blue,
+        self.bt_publish = Button(frame_pull_publish, text='Push', height=2, bg=self.col_bt_bg_blue,
                                  fg=self.col_bt_fg_default, activebackground=self.col_bt_bg_blue_active,
                                  activeforeground=self.col_bt_fg_default, highlightthickness=0,
                                  bd=self.default_bt_bd, relief=self.def_bt_relief,
@@ -1190,6 +1237,7 @@ PipelineUI()
 
 # TODO FINAL - turn copy into move
 # TODO FINAL - ask rory for permission to mention the origin
+# TODO FINAL of LOGO?
 
 # TODO blender: issue, deleted objects stay linked to the collection. causes errors as they are not linked to the scene
 
@@ -1207,7 +1255,11 @@ release exploded texturing alembic
 """
 # TODO If pipeline is opened, and no show exists, run project_editor
 # TODO rename publish to push?
-# TODO copyright of LOGO?
 # TODO red indicator for publish button
-# TODO replace 'extend_path' with os.path.join()
 # TOD release button goes red if something to release is found
+# TODO disable push if asset is not initialised, to avoid error
+# TODO MSR multiprocessing
+
+# Maybe if I feel like it:
+# TODO blender rename default view_layer to MASTER
+# TODO open txt pantry (subselect channel to open its version

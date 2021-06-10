@@ -296,9 +296,9 @@ class Publish:
         ui_pull_publish.lift()
         ui_pull_publish.attributes("-alpha", 0.0)
         ui_pull_publish.iconbitmap(r'.\ui\icon_pipe.ico')
-        ui_pull_publish.title('Pull & Publish')
+        ui_pull_publish.title('Pull & Push')
         ui_pull_publish.geometry(dimensions)
-        ui_title_bar(self, self.ui_proxy, ui_pull_publish, 'Publish',
+        ui_title_bar(self, self.ui_proxy, ui_pull_publish, 'Push',
                      r'.\ui\icon_pipe_white_PNG_s.png', self.col_wdw_title)
         ui_pull_publish.configure(bg=self.col_wdw_default)
 

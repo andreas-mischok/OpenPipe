@@ -2068,7 +2068,7 @@ class ShdUiPackageManagement(bpy.types.Panel):
     def draw(self, context):
         global scene_has_been_loaded, txt_var, scene_is_turntable
         scene = context.scene
-        pipe_tool = scene.pipe_tool
+        #pipe_tool = scene.pipe_tool
         pipe_tool_all = scene.pipe_tool_all
 
         layout = self.layout
@@ -2085,23 +2085,16 @@ class ShdUiPackageManagement(bpy.types.Panel):
             column1.label(text='TXT Variation')
 
             row2 = layout.row()
-            #column2.prop(pipe_tool, 'txt_var')
             column2.prop(pipe_tool_all, 'variation_selector')
 
-            #txt_var = pipe_tool.txt_var
             if scene_has_been_loaded is False:
                 row2.operator('pipe.shd_setup')
             else:
                 column2.enabled = False
-                #column2.label(text=txt_var)
                 row2.operator('pipe.shd_update')
         else:
             row0.label(text='Tool disabled - turntable scenes detected')
-            #row1.label(text='Disabled as current scene is a turntable.')
             row0.enabled = False
-
-
-# TODO remove redundant txt_variation query
 
 
 class AllUiRenderSettings(bpy.types.Panel):
@@ -2687,6 +2680,9 @@ def assign_missing_mat(obj):
 
 def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
     global asset, dir_asset, txt_var
+    active_view_layer = bpy.context.window.view_layer.name
+    bpy.context.window.view_layer = bpy.context.scene.view_layers["View Layer"]
+
     current_variation_collections = [x for x in bpy.data.collections
                                      if x.name.split('.')[0] == asset
                                      and x.name.split('.')[1] == '*']
@@ -2782,6 +2778,7 @@ def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
                 else:
                     assign_missing_mat(obj)
 
+    bpy.context.window.view_layer = bpy.context.scene.view_layers[active_view_layer]
 # TODO also update if switching from MDL to ANM or reverse
 
 
@@ -3177,8 +3174,6 @@ def setup_texture(dir_channel_textures, mat, slot, count, name):
 
 # TODO create UI for selecting model variations
 # TODO import all textures, even those that don't need to be connected by default
-# TODO set default render settings
-# TODO set default light setup
 # TODO ui for selecting which variations to actively render
 
 # TODO texture variation as scene? (needs separate geo... or can it do material overridees?)

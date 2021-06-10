@@ -354,7 +354,7 @@ class ReleaseTextures:
 
         self.var_publish = BooleanVar()
         self.var_publish.set(False)
-        cb_publish = Checkbutton(frame_main, text='publish result', var=self.var_publish,
+        cb_publish = Checkbutton(frame_main, text='push result', var=self.var_publish,
                                  bg=self.col_wdw_default, activebackground=self.col_wdw_default,
                                  fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
                                  selectcolor=self.col_bt_bg_active)

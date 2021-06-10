@@ -50,6 +50,7 @@ def store_json_variables():
     json_release = json.dumps(dict_release_channel, indent=2)
     print(json_release)
 
+
 def load_json_variables(config):
     with open(config, 'r') as config_file:
         config_file_content = json.load(config_file)

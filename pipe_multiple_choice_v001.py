@@ -59,7 +59,7 @@ class MultipleChoice:
         frame.pack(fill=X, padx=self.default_padding, pady=2*self.default_padding)
 
         # --------------------------------------------------------------------------------------------------------------
-        lbl_text = Label(frame, bd=1, text=self.text, anchor=CENTER, width=5,
+        lbl_text = Label(frame, bd=1, text=self.text, anchor=CENTER, #width=5,
                          bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         lbl_text.grid(row=0, column=0, columnspan=len(self.choices), sticky=NSEW, padx=self.default_padding,
                       pady=2 * self.default_padding)
