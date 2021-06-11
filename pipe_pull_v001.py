@@ -52,6 +52,27 @@ class Pull:
             text_pull = text_pull + 'MDL \n' \
                                     f'  - {version_cur}    ▶    {self.mdl_version_pub}'
 
+        # ---- ANM -----------------------------------------------------------------------------
+        anm_updates = []
+        if len(self.list_updates_pull["anm"]) > 0:
+            for file_anm in self.list_updates_pull["anm"]:
+                with open(file_anm, 'r') as json_file:
+                    dict_channel_content = json.load(json_file)
+                anm_name = os.path.splitext(os.path.normpath(file_anm).split(os.sep)[-1])[0]
+                print(anm_name)
+
+                from_to = f'\n  - {anm_name}      ' \
+                          f'{dict_channel_content[self.parent.current_discipline]}  ▶  ' \
+                          f'{dict_channel_content["anm_publish"]}'
+
+                anm_updates.append(from_to)
+        updates_text = ''.join(anm_updates)
+
+        if len(updates_text) > 0:
+            if len(text_pull) != 0:
+                text_pull = text_pull + '\n\n'
+            text_pull = text_pull + 'ANM' + updates_text
+
         # ---- TXT -----------------------------------------------------------------------------
         # Detect channels that need to be updated
         txt_updates = []
@@ -116,6 +137,18 @@ class Pull:
 
     def execute_pull(self):
         update_required = False
+
+        # anm update:
+        if len(self.list_updates_pull["anm"]) > 0:
+            update_required = True
+            for file_anm in self.list_updates_pull["anm"]:
+                with open(file_anm, 'r') as json_file:
+                    dict_anm_content = json.load(json_file)
+
+                dict_anm_content[self.parent.current_discipline] = dict_anm_content["anm_publish"]
+
+                with open(file_anm, 'w') as json_file:
+                    json.dump(dict_anm_content, json_file, indent=2)
 
         # txt update:
         if len(self.list_updates_pull["txt"]) > 0:

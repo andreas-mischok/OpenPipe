@@ -35,7 +35,9 @@ class PipelineUI:
             self.ocio_default = self.tkvar_top = self.bt_directory = self.initialise = self.col_bt_red = \
             self.col_bt_red_highlight = self.bt_pull = self.dir_pipeline_txt = self.bt_connections = \
             self.bt_rtt = self.bt_publish = self.frame_directories = self.dir_pipeline_mdl = self.bt_package = \
-            self.bt_check = self.dir_pantry_mdl = self.dir_pipeline_shd = self.dir_pantry_shd = None
+            self.bt_check = self.dir_pantry_mdl = self.dir_pipeline_shd = self.dir_pantry_shd = \
+            self.dd_sequence = self.current_sequence = self.sequences = self.dd_shot = self.current_shot = \
+            self.column_width = self.ui_elements_discipline = self.dir_pipeline_anm = None
 
         if os.path.isdir(r'.\projects\\'):
             self.projects = [x for x in os.listdir(r'.\projects\\') if os.path.isdir(f'.\\projects\\{x}')]
@@ -465,7 +467,7 @@ class PipelineUI:
         if project_switch_success:
             self.dd_projects.configure(text=project, bg=bg, activebackground=abg)
             self.current_project_name = project
-            self.ui_create_elements_asset()
+            self.ui_create_elements_asset_row()
 
             self.current_root = root
             self.dict_software = dict_software
@@ -485,7 +487,8 @@ class PipelineUI:
         """
         self.dd_department.configure(text=department)
         self.current_department = department
-        self.ui_create_elements_asset()
+        self.ui_create_elements_discipline()
+        self.ui_create_elements_asset_row()
 
     def switch_discipline(self, discipline):
         """ Executed when a discipline is selected from the discipline dropdown.
@@ -497,8 +500,8 @@ class PipelineUI:
         """
         self.dd_discipline.configure(text=discipline)
         self.current_discipline = discipline
-        self.check_for_outdated_packages()
 
+        self.check_for_outdated_packages()
         self.disable_unqualified_tools()
 
     def switch_asset(self, asset):
@@ -511,6 +514,33 @@ class PipelineUI:
         """
         self.dd_asset.configure(text=asset)
         self.current_asset = asset
+        self.check_for_outdated_packages()
+        self.disable_unqualified_tools()
+
+    def switch_sequence(self, sequence):
+        """ Executed when an asset is selected from the asset dropdown.
+        - updates text of the dropdown
+        - updates variable used by other functions
+
+        :param sequence: Name of the sequence selected from the dropdown.
+        :return:
+        """
+        self.dd_sequence.configure(text=sequence)
+        self.current_sequence = sequence
+        self.ui_create_shot(self.current_root, 3)
+        self.check_for_outdated_packages()
+        self.disable_unqualified_tools()
+
+    def switch_shot(self, shot):
+        """ Executed when an asset is selected from the asset dropdown.
+        - updates text of the dropdown
+        - updates variable used by other functions
+
+        :param shot: Name of the shot selected from the dropdown.
+        :return:
+        """
+        self.dd_shot.configure(text=shot)
+        self.current_shot = shot
         self.check_for_outdated_packages()
         self.disable_unqualified_tools()
 
@@ -550,7 +580,8 @@ class PipelineUI:
             self.bt_pull.configure(state=NORMAL)
             self.bt_package.configure(state=NORMAL)
             self.bt_check.configure(state=NORMAL)
-            self.dd_asset.configure(bg=self.col_bt_petrol, activebackground=self.col_bt_petrol_highlight)
+            if self.current_department == 'build':
+                self.dd_asset.configure(bg=self.col_bt_petrol, activebackground=self.col_bt_petrol_highlight)
 
             if self.current_discipline == 'txt':
                 self.bt_connections.config(state=NORMAL)
@@ -566,6 +597,7 @@ class PipelineUI:
             else:
                 self.bt_connections.config(state=DISABLED)
                 self.bt_rtt.config(state=DISABLED)
+
     # TODO change colour of asset dd if it doesn't exist
 
     def project_config_edit(self):
@@ -646,7 +678,63 @@ class PipelineUI:
         self.ui_child.deiconify()
         self.ui_proxy.iconify()
 
-    def ui_create_elements_asset(self):
+    def ui_create_elements_discipline(self):
+        if self.ui_elements_discipline is not None:
+            for element in self.ui_elements_discipline:
+                element.destroy()
+
+        if self.current_department == 'build':
+            self.current_discipline = 'mdl'
+            self.dd_discipline = Menubutton(self.frame_asset, text=self.current_discipline,
+                                            width=4, bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
+                                            highlightthickness=0, activebackground=self.col_ui_dd_default_highlight,
+                                            anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                            relief=self.def_bt_relief, justify=RIGHT)
+            self.dd_discipline.menu = Menu(self.dd_discipline, tearoff=0, bd=0, activeborderwidth=3,
+                                           relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                           activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                           activebackground=self.col_bt_bg_blue_highlight)
+            self.dd_discipline['menu'] = self.dd_discipline.menu
+
+            self.dd_discipline.menu.add_command(label='mdl', command=lambda: self.switch_discipline('mdl'))
+            self.dd_discipline.menu.add_command(label='txt', command=lambda: self.switch_discipline('txt'))
+            self.dd_discipline.menu.add_command(label='shd', command=lambda: self.switch_discipline('shd'))
+            self.dd_discipline.menu.add_command(label='anm', command=lambda: self.switch_discipline('anm'))
+
+            self.dd_discipline.grid(row=0, column=4, columnspan=1, sticky=EW, padx=self.default_padding,
+                                    pady=self.default_padding)
+            CreateToolTip(self.dd_discipline,
+                          "Your discipline has an effect on the availability and functionality of "
+                          "other pipeline tools.\n\n"
+                          "mdl = modeling\n"
+                          "txt = texturing\n"
+                          "shd = shading")
+            self.ui_elements_discipline = [self.dd_discipline]
+
+        elif self.current_department == 'sequence':
+            self.current_discipline = 'sht'
+            self.dd_discipline = Menubutton(self.frame_asset, text=self.current_discipline,
+                                            width=4, bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
+                                            highlightthickness=0, activebackground=self.col_ui_dd_default_highlight,
+                                            anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                            relief=self.def_bt_relief, justify=RIGHT)
+            self.dd_discipline.menu = Menu(self.dd_discipline, tearoff=0, bd=0, activeborderwidth=3,
+                                           relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                           activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                           activebackground=self.col_bt_bg_blue_highlight)
+            self.dd_discipline['menu'] = self.dd_discipline.menu
+
+            self.dd_discipline.menu.add_command(label='sht', command=lambda: self.switch_discipline('sht'))
+
+            self.dd_discipline.grid(row=0, column=4, columnspan=1, sticky=EW, padx=self.default_padding,
+                                    pady=self.default_padding)
+            CreateToolTip(self.dd_discipline,
+                          "Your discipline has an effect on the availability and functionality of "
+                          "other pipeline tools.\n\n"
+                          "sht = shot")
+            self.ui_elements_discipline = [self.dd_discipline]
+
+    def ui_create_elements_asset_row(self):
         """ Called from init. Launches the main UI of this script.
 
         :return:
@@ -700,7 +788,7 @@ class PipelineUI:
                                           activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
                                           activebackground=self.col_bt_bg_blue_highlight)
                 self.dd_asset['menu'] = self.dd_asset.menu
-
+                self.assets.sort()
                 for asset in self.assets:
                     self.dd_asset.menu.add_command(label=asset, command=lambda x=asset: self.switch_asset(x))
 
@@ -733,11 +821,12 @@ class PipelineUI:
                 self.ui_elements_asset = [lbl_asset, self.dd_asset, bt_asset_create, bt_directory]  # , bt_asset_edit]
 
             elif self.current_department == 'sequence':
-                self.ui_elements_asset = None
                 # ---------------------------------------------------------------------------------------------
-                lbl_seq = Label(self.frame_asset, bd=1, text='Seq/Sht',
+                lbl_seq = Label(self.frame_asset, bd=1, text='Sq/Sh',
                                 bg=self.col_wdw_default, fg=self.col_bt_fg_default)
                 lbl_seq.grid(row=row_asset, column=0, padx=self.default_padding, pady=self.default_padding)
+                CreateToolTip(lbl_seq,
+                              "Sequence & Shot")
                 # ---------------------------------------------------------------------------------------------
                 root = None
                 for project_name in self.project_names:
@@ -764,23 +853,73 @@ class PipelineUI:
                 else:
                     self.current_sequence = self.sequences[0]
 
-                self.dd_sequences = Menubutton(self.frame_asset, text=self.current_sequence,
-                                               bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
-                                               highlightthickness=0,
-                                               activebackground=self.col_ui_dd_default_highlight,
-                                               anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
-                                               relief=self.def_bt_relief, justify=RIGHT)
-                self.dd_sequences.menu = Menu(self.dd_sequences, tearoff=0, bd=0, activeborderwidth=3,
-                                              relief=self.def_bt_relief, bg=self.col_bt_fg_default,
-                                              activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
-                                              activebackground=self.col_bt_bg_blue_highlight)
-                self.dd_sequences['menu'] = self.dd_sequences.menu
+                self.frame_sequence = Frame(self.frame_asset, bg=self.col_wdw_default)
+                self.frame_sequence.grid(row=row_asset, column=1, columnspan=1, sticky=NSEW)
+                self.frame_sequence.columnconfigure(0, weight=1)
 
+                self.dd_sequence = Menubutton(self.frame_sequence, text=self.current_sequence,
+                                              bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
+                                              highlightthickness=0,
+                                              activebackground=self.col_ui_dd_default_highlight,
+                                              anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                              relief=self.def_bt_relief, justify=RIGHT)
+                self.dd_sequence.menu = Menu(self.dd_sequence, tearoff=0, bd=0, activeborderwidth=3,
+                                             relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                             activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                             activebackground=self.col_bt_bg_blue_highlight)
+                self.dd_sequence['menu'] = self.dd_sequence.menu
+                CreateToolTip(self.dd_sequence,
+                              "Sequence")
+                self.sequences.sort()
                 for sequence in self.sequences:
-                    self.dd_sequences.menu.add_command(label=sequence, command=lambda x=sequence: self.switch_asset(x))
+                    self.dd_sequence.menu.add_command(label=sequence,
+                                                      command=lambda x=sequence: self.switch_sequence(x))
+                self.dd_sequence.grid(row=row_asset, column=0, columnspan=1, padx=self.default_padding, sticky=NSEW,
+                                      pady=self.default_padding)
 
-                self.dd_sequences.grid(row=row_asset, column=1, columnspan=1, sticky=EW, padx=self.default_padding,
-                                       pady=self.default_padding)
+                # --- Shots --------------------------------------------------------------------------------------
+                dd_shot = self.ui_create_shot(root, row_asset)
+
+                self.ui_elements_asset = [lbl_seq, self.dd_sequence, dd_shot, self.frame_sequence]
+
+    # TODO Discipline Layout/Shot
+    # TODO layout needs to delete shot dropdown and only keep sequence dropdown
+    # TODO last shot needs to be stored
+    # TODO shot creation tool
+
+    def ui_create_shot(self, root, row_asset):
+        if self.dd_shot is not None:
+            self.dd_shot.destroy()
+
+        if root is not None and self.current_sequence != '':
+            sequence_path = '/'.join([root, self.current_project_name, 'sequences', self.current_sequence])
+            shots = os.listdir(sequence_path)
+            self.current_shot = shots[0]
+        else:
+            shots = []
+            self.current_shot = ''
+
+        self.dd_shot = Menubutton(self.frame_sequence, text=self.current_shot, width=6,
+                                  bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
+                                  highlightthickness=0,
+                                  activebackground=self.col_ui_dd_default_highlight,
+                                  anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                  relief=self.def_bt_relief, justify=RIGHT)
+        self.dd_shot.menu = Menu(self.dd_shot, tearoff=0, bd=0, activeborderwidth=3,
+                                 relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                 activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                 activebackground=self.col_bt_bg_blue_highlight)
+        self.dd_shot['menu'] = self.dd_shot.menu
+        CreateToolTip(self.dd_shot,
+                      "Shot")
+        shots.sort()
+        for shot in shots:
+            self.dd_shot.menu.add_command(label=shot,
+                                          command=lambda x=shot: self.switch_shot(x))
+        self.dd_shot.grid(row=row_asset, column=1, columnspan=1, sticky=NSEW, padx=self.default_padding,
+                          pady=self.default_padding)
+
+        return self.dd_shot
 
     def ui_create_elements_software(self):
         if self.dd_software is not None:
@@ -849,7 +988,9 @@ class PipelineUI:
 
         if list_updates['mdl'] is not None:
             updates += 1
-
+        if len(list_updates['anm']) > 0:
+            for _ in list_updates['anm']:
+                updates += 1
         if len(list_updates['txt']) > 0:
             for _ in list_updates['txt']:
                 updates += 1
@@ -1014,7 +1155,7 @@ class PipelineUI:
         for project in self.project_names:
             self.dd_projects.menu.add_command(label=project, command=lambda x=project: self.switch_project(x))
 
-        self.dd_projects.grid(row=project_row, column=1, sticky=EW, padx=self.default_padding,
+        self.dd_projects.grid(row=project_row, column=1, columnspan=1, sticky=EW, padx=self.default_padding,
                               pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
 
@@ -1024,6 +1165,7 @@ class PipelineUI:
                                bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         lbl_department.grid(row=department_row, column=0, sticky=W, padx=self.default_padding,
                             pady=self.default_padding)
+        CreateToolTip(lbl_department, "Department")
         # ---------------------------------------------------------------------------------------------
         lbl_discipline = Label(self.frame_asset, bd=1, text='Discipline', width=9,
                                bg=self.col_wdw_default, fg=self.col_bt_fg_default)
@@ -1046,36 +1188,12 @@ class PipelineUI:
         self.dd_department.menu.add_command(label='sequence', command=lambda: self.switch_department('sequence'))
         #self.dd_department.menu.add_command(label='shot', command=lambda: self.switch_department('shot'))
 
-        self.dd_department.grid(row=department_row, column=1, sticky=EW, padx=self.default_padding,
+        self.dd_department.grid(row=department_row, column=1, columnspan=1, sticky=EW, padx=self.default_padding,
                                 pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
-        self.current_discipline = 'mdl'
-        self.dd_discipline = Menubutton(self.frame_asset, text=self.current_discipline,
-                                        width=4, bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
-                                        highlightthickness=0, activebackground=self.col_ui_dd_default_highlight,
-                                        anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
-                                        relief=self.def_bt_relief, justify=RIGHT)
-        self.dd_discipline.menu = Menu(self.dd_discipline, tearoff=0, bd=0, activeborderwidth=3,
-                                       relief=self.def_bt_relief, bg=self.col_bt_fg_default,
-                                       activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
-                                       activebackground=self.col_bt_bg_blue_highlight)
-        self.dd_discipline['menu'] = self.dd_discipline.menu
-
-        self.dd_discipline.menu.add_command(label='mdl', command=lambda: self.switch_discipline('mdl'))
-        self.dd_discipline.menu.add_command(label='txt', command=lambda: self.switch_discipline('txt'))
-        self.dd_discipline.menu.add_command(label='shd', command=lambda: self.switch_discipline('shd'))
-        self.dd_discipline.menu.add_command(label='anm', command=lambda: self.switch_discipline('anm'))
-        # self.dd_discipline.menu.add_command(label='lgt', command=lambda: self.switch_discipline('lgt'))
-
-        self.dd_discipline.grid(row=department_row, column=4, columnspan=1, sticky=EW, padx=self.default_padding,
-                                pady=self.default_padding)
-        CreateToolTip(self.dd_discipline,
-                      "Your discipline has an effect on the availability and functionality of other pipeline tools.\n\n"
-                      "mdl = modeling\n"
-                      "txt = texturing\n"
-                      "shd = shading")
+        self.ui_create_elements_discipline()
         # ---------------------------------------------------------------------------------------------
-        self.ui_create_elements_asset()
+        self.ui_create_elements_asset_row()
         # ---------------------------------------------------------------------------------------------
         # LAUNCH SCRIPTS SECTION
         # --- Button - Software launcher

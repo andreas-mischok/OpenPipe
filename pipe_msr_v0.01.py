@@ -29,7 +29,12 @@ class MundaneSequenceRenamer:
         project = os.getenv('PIPE_PROJECT')
         department = os.getenv('PIPE_DEPARTMENT')
         asset = os.getenv('PIPE_ASSET')
-        initial_dir = '/'.join([root, project, department, asset])
+        #initial_dir = '/'.join([root, project, department, asset])
+        try:
+            initial_dir = os.path.join(root, project, department, asset)
+        except TypeError:
+            initial_dir = os.path.join(root, project)
+
         self.files_in_full_path = filedialog.askopenfilenames(title='select', initialdir=initial_dir,
                                                               filetypes=[('ALL', '*.*'), ('PNG', '*.png')])
         self.files_in_full_path = [x for x in self.files_in_full_path]

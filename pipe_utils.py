@@ -330,11 +330,11 @@ def pull_required(parent):
     list_updates = {
         "mdl": None,
         "txt": [],
-        "shd": []
+        "shd": [],
+        "anm": [],
     }
     if parent.dir_pipeline_txt is not None:
     #if os.path.isdir(parent.dir_pipeline_txt):
-
         if parent.current_discipline != 'mdl':
             dir_pipe_mdl = os.path.join(parent.dir_asset, '.pipeline', 'mdl')
             file_mdl_package = os.path.join(dir_pipe_mdl, 'mdl_package.json')
@@ -342,8 +342,15 @@ def pull_required(parent):
             if os.path.isfile(file_mdl_package):
                 with open(file_mdl_package, 'r') as json_file:
                     dict_content_mdl_package = json.load(json_file)
+                try:
+                    current_version = dict_content_mdl_package[parent.current_discipline]
+                except KeyError:
+                    with open(file_mdl_package, 'w') as json_output:
+                        dict_content_mdl_package[parent.current_discipline] = ""
+                        json.dump(dict_content_mdl_package, json_output, indent=2)
+                        #dict_content_mdl_package = json.load(json_file)
+                    current_version = ''
 
-                current_version = dict_content_mdl_package[parent.current_discipline]
                 mdl_publish = dict_content_mdl_package["mdl_publish"]
 
                 if len(mdl_publish) != 0:
@@ -356,6 +363,28 @@ def pull_required(parent):
                             "version_pub": mdl_publish
                         }
 
+        if parent.current_discipline != 'anm':
+            anms_directories = [x for x in os.listdir(parent.dir_pipeline_anm)]
+            for anm in anms_directories:
+                file_anm_package = os.path.join(parent.dir_pipeline_anm, anm, f'{anm}.json')
+
+                if os.path.isfile(file_anm_package):
+                    with open(file_anm_package, 'r') as json_file:
+                        dict_content_anm_package = json.load(json_file)
+                try:
+                    current_version = dict_content_anm_package[parent.current_discipline]
+                except KeyError:
+                    with open(file_anm_package, 'w') as json_output:
+                        dict_content_anm_package[parent.current_discipline] = ""
+                        json.dump(dict_content_anm_package, json_output, indent=2)
+                    current_version = ''
+
+                anm_publish = dict_content_anm_package["anm_publish"]
+
+                if len(anm_publish) != 0:
+                    if current_version != anm_publish:
+                        list_updates["anm"].append(file_anm_package)
+
         txt_variation_directories = [x for x in os.listdir(parent.dir_pipeline_txt)]
         if parent.current_discipline != 'txt':
             for dir_variation in txt_variation_directories:
@@ -364,30 +393,44 @@ def pull_required(parent):
 
                 if channels_json is not None:
                     for channel_json in channels_json_native:
-                        full_path = os.path.join(dir_txt_package, channel_json)
+                        file_txt_package = os.path.join(dir_txt_package, channel_json)
 
-                        with open(full_path, 'r') as json_file:
+                        with open(file_txt_package, 'r') as json_file:
                             dict_channel_file_content = json.load(json_file)
-
                         published = dict_channel_file_content['txt_publish']
-                        used = dict_channel_file_content[parent.current_discipline]
+                        try:
+                            used = dict_channel_file_content[parent.current_discipline]
+
+                        except KeyError:
+                            with open(file_txt_package, 'w') as json_output:
+                                dict_channel_file_content[parent.current_discipline] = ""
+                                json.dump(dict_channel_file_content, json_output, indent=2)
+                                # dict_content_mdl_package = json.load(json_file)
+                            used = ''
 
                         if used != published:
-                            list_updates["txt"].append(full_path)
+                            list_updates["txt"].append(file_txt_package)
 
         shd_variation_directories = [x for x in os.listdir(parent.dir_pipeline_shd)]
         if parent.current_discipline != 'shd':
             for dir_variation in shd_variation_directories:
-                file_txt_package = os.path.join(parent.dir_pipeline_shd, dir_variation, 'shd_package.json')
+                file_shd_package = os.path.join(parent.dir_pipeline_shd, dir_variation, 'shd_package.json')
 
-                with open(file_txt_package, 'r') as json_file:
+                with open(file_shd_package, 'r') as json_file:
                     dict_variation_content = json.load(json_file)
 
                 published = dict_variation_content['shd_publish']
-                used = dict_variation_content[parent.current_discipline]
+                try:
+                    used = dict_variation_content[parent.current_discipline]
+                except KeyError:
+                    with open(file_shd_package, 'w') as json_output:
+                        dict_variation_content[parent.current_discipline] = ""
+                        json.dump(dict_variation_content, json_output, indent=2)
+                        # dict_content_mdl_package = json.load(json_file)
+                    used = ''
 
                 if used != published:
-                    list_updates["shd"].append(file_txt_package)
+                    list_updates["shd"].append(file_shd_package)
 
     return list_updates
 

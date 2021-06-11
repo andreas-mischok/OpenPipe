@@ -77,7 +77,8 @@ class ReleaseTextures:
                     "txt": layer_version,
                     "txt_publish": '',
                     "shd": '',
-                    "anm": ''
+                    "anm": '',
+                    "sht": ''
                 }
         else:
             dict_channel = {
@@ -85,7 +86,8 @@ class ReleaseTextures:
                 "txt": layer_version,
                 "txt_publish": '',
                 "shd": '',
-                "anm": ''
+                "anm": '',
+                "sht": ''
             }
 
         if self.publish:

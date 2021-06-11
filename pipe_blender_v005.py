@@ -214,6 +214,8 @@ def write_json_files(version_cur, publish):
             "mdl_publish": '',
             "txt": '',
             "shd": '',
+            "anm": "",
+            "sht": '',
             "variations": dict_variations
         }
 
@@ -2612,6 +2614,8 @@ class ShdExportFunctions:
                 "txt": "",
                 "shd": json_version_cur,
                 "shd_publish": "",
+                "anm": "",
+                "sht": "",
             }
         if publish:
             dict_shd_package["shd_publish"] = json_version_cur
