@@ -1,32 +1,40 @@
+# Import built-in modules
+from datetime import datetime
+import json
+import math
 import os
-import bpy
-from bpy.app.handlers import persistent
 from mathutils import Euler
 
-import json
-from datetime import datetime
+# Import Third-Party Modules
+import bpy
 from bpy.props import IntProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty, EnumProperty
 import string
-import math
 from collections import Counter
+# Import local modules
+import blender.blender_variables as b_vars
+from blender.blender_sht import ShotUiMain, ShotAddAsset, ShotChangeVariation, ShotReplaceAsset, ShotUpdateAsset, ShotUpdateAssets, ShotListVariations
+from blender.blender_utils import RenderSettings, catch_loading_scene, apply_sensor_preset
+#import blender.blender_sht as sht
+#from blender.blender_variables import *
+# from blender.blender_sht import SequenceSettingsVariations
 
-python_root = os.getenv('PIPE_PYTHON_ROOT')
-root = os.getenv('PIPE_ROOT')
-project = os.getenv('PIPE_PROJECT')
-project_abbr = os.getenv('PIPE_PROJECT_ABBR')
-department = os.getenv('PIPE_DEPARTMENT')
-discipline = os.getenv('PIPE_DISCIPLINE')
-asset = os.getenv('PIPE_ASSET')
-sequence = os.getenv('PIPE_SEQUENCE')
-shot = os.getenv('PIPE_SHOT')
-user = os.getenv('PIPE_USER')
+# python_root = os.getenv('PIPE_PYTHON_ROOT')
+# root = os.getenv('PIPE_ROOT')
+# project = os.getenv('PIPE_PROJECT')
+# project_abbr = os.getenv('PIPE_PROJECT_ABBR')
+# department = os.getenv('PIPE_DEPARTMENT')
+# discipline = os.getenv('PIPE_DISCIPLINE')
+# asset = os.getenv('PIPE_ASSET')
+# sequence = os.getenv('PIPE_SEQUENCE')
+# shot = os.getenv('PIPE_SHOT')
+# user = os.getenv('PIPE_USER')
 
-config_file = f'{python_root}/projects/{project}-{project_abbr}/{project}-{project_abbr}.json'
+config_file = f'{b_vars.python_root}/projects/{b_vars.project}-{b_vars.project_abbr}/{b_vars.project}-{b_vars.project_abbr}.json'
 with open(config_file, 'r') as json_content:
     dict_project_config = json.load(json_content)
 
-if department == 'build':
-    dir_asset = str(os.path.join(root, project, 'build', asset))
+if b_vars.department == 'build':
+    dir_asset = str(os.path.join(b_vars.root, b_vars.project, 'build', b_vars.asset))
     dir_pipe = str(os.path.join(dir_asset, '.pipeline'))
     dir_pipe_mdl = str(os.path.join(dir_pipe, 'mdl'))
     dir_pipe_txt = str(os.path.join(dir_pipe, 'txt'))
@@ -53,20 +61,18 @@ def get_list_variations(variations):
 
 
 def create_get_asset_collection():
-    global asset
-    if asset in bpy.data.collections:
-        return bpy.data.collections[asset]
+    if b_vars.asset in bpy.data.collections:
+        return bpy.data.collections[b_vars.asset]
     else:
-        collection_asset = bpy.data.collections.new(asset)
+        collection_asset = bpy.data.collections.new(b_vars.asset)
         collection_asset.use_fake_user = True
         return collection_asset
 
 
 def get_all_variations():
-    global asset
     prefixes = []
-    if asset in bpy.data.collections:
-        for obj in bpy.data.collections[asset].objects:
+    if b_vars.asset in bpy.data.collections:
+        for obj in bpy.data.collections[b_vars.asset].objects:
             prefix = [x for x in obj.name.split('.')[1] if x not in prefixes]
             prefixes += prefix
     return prefixes
@@ -95,16 +101,16 @@ def add_variation(obj, asset_collection, list_variations, replace_existing):
 
                 prefix = ''.join(list_variations_combined)
 
-                new_name = f'{asset}.{prefix}.{name_without_prefix}'
+                new_name = f'{b_vars.asset}.{prefix}.{name_without_prefix}'
             else:
-                new_name = f'{asset}.*.{name_without_prefix}'
+                new_name = f'{b_vars.asset}.*.{name_without_prefix}'
 
         else:
             if '*' not in list_variations:
                 prefix = ''.join(list_variations)
-                new_name = f'{asset}.{prefix}.{current_name}'
+                new_name = f'{b_vars.asset}.{prefix}.{current_name}'
             else:
-                new_name = f'{asset}.*.{current_name}'
+                new_name = f'{b_vars.asset}.*.{current_name}'
             asset_collection.objects.link(obj)
 
         obj.name = new_name
@@ -139,15 +145,14 @@ def remove_obj_from_variations(obj, list_variations, asset_collection, delete_no
                 new_prefix = ''.join([x for x in current_prefix if x not in list_variations and x != ''])
 
             if len(new_prefix) > 0:
-                obj.name = f'{asset}.{new_prefix}.{name_without_prefix}'
+                obj.name = f'{b_vars.asset}.{new_prefix}.{name_without_prefix}'
             else:
                 obj.name = name_without_prefix
                 asset_collection.objects.unlink(obj)
 
 
 def build_directories():
-    global root, project, asset
-    dir_pantry = '/'.join([root, project, 'build', asset, 'mdl', '.pantry'])
+    dir_pantry = '/'.join([b_vars.root, b_vars.project, 'build', b_vars.asset, 'mdl', '.pantry'])
     existing_versions = [x for x in os.listdir(dir_pantry) if os.path.isdir('/'.join([dir_pantry, x]))]
     if len(existing_versions) == 0:
         version_cur = 'v001'
@@ -183,10 +188,10 @@ def write_json_files(version_cur, push):
         os.makedirs(dir_pipe_mdl_versions)
 
     variations = sorted([x for x in get_all_variations() if x != '*'])
-    full_path_mdl_version = os.path.join(dir_pipe_mdl_versions, f'{asset}.{json_version_cur}.json')
+    full_path_mdl_version = os.path.join(dir_pipe_mdl_versions, f'{b_vars.asset}.{json_version_cur}.json')
 
     dict_version = {
-        "artist": user,
+        "artist": b_vars.user,
         "time": str(datetime.now()).split('.')[0],
         "version": version_cur,
         "published": push,
@@ -231,9 +236,8 @@ def write_json_files(version_cur, push):
 
 
 def remove_ghosts(context):
-    global asset
-    if asset in bpy.data.collections:
-        asset_collection = bpy.data.collections[asset]
+    if b_vars.asset in bpy.data.collections:
+        asset_collection = bpy.data.collections[b_vars.asset]
         for obj in asset_collection.objects:
             if obj.name not in [x.name for x in context.scene.objects]:
                 asset_collection.objects.unlink(obj)
@@ -301,7 +305,7 @@ class PipeSettingsMdl(bpy.types.PropertyGroup):
 class MdlUiVariation(bpy.types.Panel):
     bl_idname = 'PIPE_PT_mdl_variation'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 0
@@ -349,7 +353,7 @@ class MdlUiVariation(bpy.types.Panel):
 class MdlUiExport(bpy.types.Panel):
     bl_idname = 'PIPE_PT_mdl_export'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 2
@@ -386,9 +390,9 @@ class MdlVariationApply(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset, scene_has_been_loaded, scene_is_turntable
-        scene_has_been_loaded = True
-        scene_is_turntable = False
+        # global scene_is_turntable  # scene_has_been_loaded
+        b_vars.scene_has_been_loaded = True
+        b_vars.scene_is_turntable = False
 
         sel = [x for x in context.selected_objects]  # if x.type == 'MESH']
         pipe_tool = context.scene.pipe_tool
@@ -431,9 +435,9 @@ class MdlVariationAdd(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset, scene_has_been_loaded, scene_is_turntable
-        scene_has_been_loaded = True
-        scene_is_turntable = False
+        # global scene_is_turntable  # scene_has_been_loaded
+        b_vars.scene_has_been_loaded = True
+        b_vars.scene_is_turntable = False
 
         sel = [x for x in context.selected_objects]
         pipe_tool = context.scene.pipe_tool
@@ -477,7 +481,6 @@ class MdlRemoveFrom(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset
         sel = [x for x in context.selected_objects]
         pipe_tool = context.scene.pipe_tool
         variations = pipe_tool.variation.upper()
@@ -488,8 +491,8 @@ class MdlRemoveFrom(bpy.types.Operator):
             return {'CANCELLED'}
         else:
             for obj in sel:
-                if asset in bpy.data.collections:
-                    asset_collection = bpy.data.collections[asset]
+                if b_vars.asset in bpy.data.collections:
+                    asset_collection = bpy.data.collections[b_vars.asset]
 
                     if obj.name in [x.name for x in asset_collection.objects]:
                         remove_obj_from_variations(obj, list_variations, asset_collection, False)
@@ -505,12 +508,11 @@ class MdlVariationDelete(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset
         pipe_tool = context.scene.pipe_tool
         variations = pipe_tool.variation.upper()
         list_variations = get_list_variations(variations)
-        if asset in bpy.data.collections:
-            asset_collection = bpy.data.collections[asset]
+        if b_vars.asset in bpy.data.collections:
+            asset_collection = bpy.data.collections[b_vars.asset]
             for obj in asset_collection.objects:
                 remove_obj_from_variations(obj, list_variations, asset_collection, True)
 
@@ -526,18 +528,17 @@ class MdlSelectExclusive(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset
         pipe_tool = context.scene.pipe_tool
         variations = pipe_tool.variation.upper()
         list_variations = get_list_variations(variations)
 
         bpy.ops.object.select_all(action='DESELECT')
 
-        if asset not in bpy.data.collections:
+        if b_vars.asset not in bpy.data.collections:
             self.report({'ERROR'}, 'Asset management has not been set up.')
             return {'CANCELLED'}
         else:
-            asset_collection = bpy.data.collections[asset]
+            asset_collection = bpy.data.collections[b_vars.asset]
             all_objects = asset_collection.objects
             if len(all_objects) == 0:
                 self.report({'ERROR'}, 'No variations were found.')
@@ -595,17 +596,16 @@ class MdlExport(bpy.types.Operator):
 
     def execute(self, context):
         remove_ghosts(context)
-        global asset
         pipe_tool = context.scene.pipe_tool
         offset = pipe_tool.spacing
         push = pipe_tool.push
         include_hidden = (pipe_tool.include_hidden is False)
 
-        if asset not in bpy.data.collections:
+        if b_vars.asset not in bpy.data.collections:
             self.report({'ERROR'}, 'Asset management has not been set up.')
             return {'CANCELLED'}
         else:
-            asset_collection = bpy.data.collections[asset]
+            asset_collection = bpy.data.collections[b_vars.asset]
             all_asset_objects = [x for x in asset_collection.objects if x.type == 'MESH']
             if len(all_asset_objects) == 0:
                 self.report({'ERROR'}, 'No variations were found.')
@@ -624,8 +624,8 @@ class MdlExport(bpy.types.Operator):
                     all_asset_objects = [x for x in asset_collection.objects if x.type == 'MESH']
 
                 # Detect if all objects are named correctly (include asset name)
-                collection_objs = get_all_objects(asset, [''])
-                objects_with_correct_name = [x for x in collection_objs if asset in x]
+                collection_objs = get_all_objects(b_vars.asset, [''])
+                objects_with_correct_name = [x for x in collection_objs if b_vars.asset in x]
 
                 if len(collection_objs) == len(objects_with_correct_name):
                     bpy.ops.object.select_all(action='DESELECT')
@@ -637,7 +637,7 @@ class MdlExport(bpy.types.Operator):
                     write_json_files(version_cur, push)
 
                     # Add subdivision surface modifier level to mesh name
-                    for obj in [x for x in bpy.data.objects if asset in x.name]:
+                    for obj in [x for x in bpy.data.objects if b_vars.asset in x.name]:
                         name_base = obj.name
                         if name_base.split('.')[-1][0:2] == 'sd':
                             name_base = '.'.join(name_base.split('.')[:-1])
@@ -652,7 +652,7 @@ class MdlExport(bpy.types.Operator):
                     bpy.ops.object.select_all(action='DESELECT')
 
                     # Save blend file
-                    full_path_blend = '/'.join([dir_version_cur, f'{asset}.blend'])
+                    full_path_blend = '/'.join([dir_version_cur, f'{b_vars.asset}.blend'])
                     bpy.ops.wm.save_as_mainfile(filepath=full_path_blend, copy=True)
 
                     # Get variation combinations
@@ -667,12 +667,12 @@ class MdlExport(bpy.types.Operator):
                         if include_hidden:
                             obj.hide_set(False)
                         obj.select_set(True)
-                    full_path_abc = '/'.join([dir_version_cur, f'{asset}.abc'])
+                    full_path_abc = '/'.join([dir_version_cur, f'{b_vars.asset}.abc'])
                     bpy.ops.wm.alembic_export(filepath=full_path_abc, selected=True, uvs=True,
                                               packuv=False, apply_subdiv=False,
                                               face_sets=True, use_instancing=False)
                     # Export Alembic 0 subdivided
-                    full_path_abc = '/'.join([dir_version_cur, f'{asset}_subdivided.abc'])
+                    full_path_abc = '/'.join([dir_version_cur, f'{b_vars.asset}_subdivided.abc'])
                     bpy.ops.wm.alembic_export(filepath=full_path_abc, selected=True, uvs=True,
                                               packuv=False, apply_subdiv=True,
                                               face_sets=True, use_instancing=False)
@@ -688,7 +688,7 @@ class MdlExport(bpy.types.Operator):
                     # Export Alembic 1 - All in one position, split materials
                     for obj in all_asset_objects:
                         obj.select_set(True)
-                    full_path_abc_txt_additions = '/'.join([dir_version_cur, f'{asset}_txt_addition_combined.abc'])
+                    full_path_abc_txt_additions = '/'.join([dir_version_cur, f'{b_vars.asset}_txt_addition_combined.abc'])
                     bpy.ops.wm.alembic_export(filepath=full_path_abc_txt_additions, selected=True, uvs=True, packuv=False,
                                               face_sets=True, use_instancing=False, apply_subdiv=True)
 
@@ -716,11 +716,11 @@ class MdlExport(bpy.types.Operator):
 
                     # Export 2 and 3: Exploded - With Materials & Exploded without materials
                     full_path_abc_txt_additions_bake = '/'.join(
-                        [dir_version_cur, f'{asset}_txt_addition_exploded_bake.abc'])
+                        [dir_version_cur, f'{b_vars.asset}_txt_addition_exploded_bake.abc'])
                     bpy.ops.wm.alembic_export(filepath=full_path_abc_txt_additions_bake, selected=True, uvs=True,
                                               packuv=False, face_sets=True, use_instancing=False, apply_subdiv=True)
 
-                    full_path_abc_txt_exp = '/'.join([dir_version_cur, f'{asset}_txt_replacement_exploded.abc'])
+                    full_path_abc_txt_exp = '/'.join([dir_version_cur, f'{b_vars.asset}_txt_replacement_exploded.abc'])
                     bpy.ops.wm.alembic_export(filepath=full_path_abc_txt_exp, selected=True, uvs=True, packuv=False,
                                               face_sets=False, use_instancing=False, apply_subdiv=True)
 
@@ -737,10 +737,10 @@ class PipeSettingsTxt(bpy.types.PropertyGroup):
     pass
 
 
-class AllUiTurntable(bpy.types.Panel):
+class BuildUiTurntable(bpy.types.Panel):
     bl_idname = 'PIPE_PT_all'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 1
@@ -750,29 +750,30 @@ class AllUiTurntable(bpy.types.Panel):
         layout.label(text="Turntable Setup")
 
     def draw(self, context):
-        global scene_has_been_loaded, scene_has_been_loaded, scene_is_turntable, txt_var
+        global  txt_var  # scene_has_been_loaded, scene_is_turntable
 
         layout = self.layout
         row0 = layout.row()
 
-        if scene_has_been_loaded is False or (scene_has_been_loaded is True and scene_is_turntable is True):
+        if b_vars.scene_has_been_loaded is False or (b_vars.scene_has_been_loaded is True and b_vars.scene_is_turntable is True):
             scene = context.scene
+            pipe_tool_all = scene.pipe_tool_all
             pipe_tool_all = scene.pipe_tool_all
 
             row0.label(text='MDL / ANM')
-            row0.prop(pipe_tool_all, "model_selector")
+            row0.prop(pipe_tool_all, "model_selector")  # pipe_tool_all
 
             row1 = layout.row()
             column1 = row1.column()
             column2 = row1.column()
             column1.label(text='TXT Variation')
 
-            if scene_has_been_loaded:
+            if b_vars.scene_has_been_loaded:
                 column2.enabled = False
             column2.prop(pipe_tool_all, "variation_selector")
 
             row2 = layout.row()
-            if scene_has_been_loaded:
+            if b_vars.scene_has_been_loaded:
                 row2.operator('pipe.turntable_update')
             else:
                 row2.operator('pipe.turntable_setup')
@@ -794,9 +795,10 @@ class AllUiTurntable(bpy.types.Panel):
             row_separator.separator()
 
             row5 = layout.row()
-            if scene_has_been_loaded:
+            if b_vars.scene_has_been_loaded:
                 row5.enabled = False
             row5.prop(pipe_tool_all, 'render_flat_textures')
+
             if pipe_tool_all.render_flat_textures:
                 row5.prop(pipe_tool_all, 'render_shading')
 
@@ -869,13 +871,14 @@ class AllUiTurntable(bpy.types.Panel):
             row_separator.separator()
             row_last = layout.row()
 
-            if scene_has_been_loaded is False:
+            if b_vars.scene_has_been_loaded is False:
                 row_last.enabled = False
 
             row_last.operator('pipe.output_directory')
             row_last.operator('pipe.turntable_render')
 
         else:
+            print(b_vars.scene_has_been_loaded is False, b_vars.scene_has_been_loaded, b_vars.scene_is_turntable is True)
             row0.label(text='Tool deactivated')
             row0.enabled = False
 
@@ -891,7 +894,6 @@ def clear_scene():
             except KeyError:
                 pass
         elif obj.type == 'CAMERA':
-            # print('aaaaa',bpy.data.cameras[obj.name])
             bpy.data.cameras.remove(bpy.data.cameras[obj.name])
             # bpy.data.objects.remove(obj)
             pass
@@ -956,14 +958,14 @@ class AllTurntableFunctions:
         if os.path.isfile(json_file_package):
             with open(json_file_package, 'r') as json_content:
                 dict_shd_package = json.load(json_content)
-            active_shd_version = dict_shd_package[discipline]
-            json_file_version = os.path.join(dir_pipe_shd_variation, 'versions', f'{asset}.{active_shd_version}.json')
+            active_shd_version = dict_shd_package[b_vars.discipline]
+            json_file_version = os.path.join(dir_pipe_shd_variation, 'versions', f'{b_vars.asset}.{active_shd_version}.json')
 
             if os.path.isfile(json_file_version):
                 with open(json_file_version, 'r') as json_content:
                     shd_version_blend = json.load(json_content)['version']
 
-                blend_file = os.path.join(dir_shd, '.pantry', txt_var, shd_version_blend, f'{asset}.blend')
+                blend_file = os.path.join(dir_shd, '.pantry', txt_var, shd_version_blend, f'{b_vars.asset}.blend')
                 return blend_file, shd_version_blend, active_shd_version
             else:
                 return None, None, None
@@ -1047,9 +1049,9 @@ class AllTurntableFunctions:
     def setup_output_directory(self):
         global dir_mdl, dir_txt, dir_shd
 
-        if discipline == 'mdl':
+        if b_vars.discipline == 'mdl':
             dir_base = dir_mdl
-        elif discipline == 'txt':
+        elif b_vars.discipline == 'txt':
             dir_base = dir_txt
         else:
             dir_base = dir_shd
@@ -1079,14 +1081,14 @@ class AllTurntableFunctions:
                 dir_output_version = dir_latest
                 cur_version = latest
 
-        file_output = os.path.join(dir_output_version, f'{asset}.{discipline}.{cur_version}.####')
+        file_output = os.path.join(dir_output_version, f'{b_vars.asset}.{b_vars.discipline}.{cur_version}.####')
         bpy.context.scene.render.filepath = file_output
 
     def update_asset(self, pipe_tool_all):
         global dir_pipe_mdl, txt_var
         txt_var = pipe_tool_all.variation_selector
 
-        mdl_collections = [x for x in bpy.data.collections if x.name.split('.')[0] == asset
+        mdl_collections = [x for x in bpy.data.collections if x.name.split('.')[0] == b_vars.asset
                            and x.name.count('.') >= 4]
         if len(mdl_collections) != 0:
             new_col = mdl_collections[0]
@@ -1094,13 +1096,13 @@ class AllTurntableFunctions:
             '''str([x.name.split('.')[2] for x in bpy.data.collections if x.name.split('.')[0] == asset
                            and x.name.count('.') >= 4][0])'''
             # Create New Collection
-            asset_collections = [x for x in bpy.data.collections if f'{asset}.*.{txt_var}.mdl.v' in x.name]
+            asset_collections = [x for x in bpy.data.collections if f'{b_vars.asset}.*.{txt_var}.mdl.v' in x.name]
             if len(asset_collections) == 0:
-                new_col = bpy.data.collections.new(f'{asset}.*.{txt_var}.mdl.v000')
+                new_col = bpy.data.collections.new(f'{b_vars.asset}.*.{txt_var}.mdl.v000')
                 new_col.use_fake_user = True
 
                 # Assign objects to collection
-                objects_of_asset = [x for x in bpy.data.objects if asset in x.name and x.library is None]
+                objects_of_asset = [x for x in bpy.data.objects if b_vars.asset in x.name and x.library is None]
                 for obj in objects_of_asset:
                     new_col.objects.link(obj)
 
@@ -1138,7 +1140,7 @@ class AllTurntableFunctions:
         empty.rotation_euler = (pitch, 0, 0)
         bpy.context.view_layer.update()
 
-        objects_of_asset = [x for x in bpy.data.objects if asset in x.name and x.library is None]
+        objects_of_asset = [x for x in bpy.data.objects if b_vars.asset in x.name and x.library is None]
 
         #bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
@@ -1362,9 +1364,8 @@ class AllTurntableFunctions:
             node_background.inputs[0].default_value = (0, 0, 0, 1)
 
     def setup_flat_texture_aovs(self):
-        global asset
         textures = []
-        for mat in [x for x in bpy.data.materials if asset in x.name]:
+        for mat in [x for x in bpy.data.materials if b_vars.asset in x.name]:
             nodes = mat.node_tree.nodes
 
             output_location = [x for x in nodes if x.type == 'OUTPUT_MATERIAL'][0].location
@@ -1419,7 +1420,7 @@ class AllOpenOutput(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class AllTurntableUpdate(bpy.types.Operator):
+class BuildTurntableUpdate(bpy.types.Operator):
     bl_idname = 'pipe.turntable_update'
     bl_label = 'Update'
     bl_options = {'REGISTER', 'UNDO'}
@@ -1436,7 +1437,7 @@ class AllTurntableUpdate(bpy.types.Operator):
         self.rotation_offsets = []
 
     def execute(self, context):
-        global root, project, asset, dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var
+        global dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var  # root, project, asset
 
         scene = context.scene
         pipe_tool_all = scene.pipe_tool_all
@@ -1447,7 +1448,7 @@ class AllTurntableUpdate(bpy.types.Operator):
 
         with open(json_file_package, 'r') as json_content:
             dict_shd_package = json.load(json_content)
-        new_shd_version = dict_shd_package[discipline]
+        new_shd_version = dict_shd_package[b_vars.discipline]
 
         # Get SHD version
         current_shd_version = context.window.scene.name.split('.')[-1]
@@ -1499,7 +1500,7 @@ class AllTurntableUpdate(bpy.types.Operator):
                 empty.rotation_euler = (pitch, 0, 0)
                 bpy.context.view_layer.update()
 
-                objects_of_asset = [x for x in bpy.data.objects if asset in x.name and x.library is None]
+                objects_of_asset = [x for x in bpy.data.objects if b_vars.asset in x.name and x.library is None]
 
                 # Parent objects to locator
                 for obj in objects_of_asset:
@@ -1551,7 +1552,7 @@ class AllSetupTurntable(bpy.types.Operator):
         # load currently pushed shading file
         # change variable to be loaded
         # load update operator
-        global root, project, asset, dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var
+        global dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var  # root, project, asset
 
         scene = context.scene
         pipe_tool_all = scene.pipe_tool_all
@@ -1573,7 +1574,7 @@ class AllSetupTurntable(bpy.types.Operator):
                 clear_scene()
 
                 # Import latest SHD file
-                bpy.ops.wm.append(directory=f'{blend_file}\\Scene\\', filepath=f'{asset}.blend',
+                bpy.ops.wm.append(directory=f'{blend_file}\\Scene\\', filepath=f'{b_vars.asset}.blend',
                                   filename=f'Scene',
                                   autoselect=True)
 
@@ -1595,8 +1596,10 @@ class AllSetupTurntable(bpy.types.Operator):
                 # Update RenderSettings
                 if pipe_tool_all.render_flat_textures and pipe_tool_all.render_shading is False:
                     pipe_tool_all.render_settings = 'cycles,flat'
+                    apply_sensor_preset(pipe_tool_all, 'cycles', 'flat')
                 else:
                     pipe_tool_all.render_settings = 'cycles,turntable'
+                    apply_sensor_preset(pipe_tool_all, 'cycles', 'turntable')
 
                 # UPDATE ASSET
                 AllTurntableFunctions().update_asset(pipe_tool_all)
@@ -1664,42 +1667,10 @@ class AllSetupTurntable(bpy.types.Operator):
 # TODO fix materials on animations
 
 # --- SHD STREAM -------------------------------------------------------------------------------------------------------
-scene_has_been_loaded = False
-scene_is_turntable = False
+#scene_has_been_loaded = False
+# scene_is_turntable = False
 txt_var = None
 mdl_variations = None
-
-
-@persistent
-def catch_loading_scene(_):
-    global scene_has_been_loaded, scene_is_turntable, asset, txt_var, mdl_variations
-    #pipe_tool_all = bpy.context.scene.pipe_tool_all
-
-    reverse = True
-    #current_render_settings = f'cycles,shading'
-    for col in bpy.data.collections:
-        if asset in col.name:
-            scene_has_been_loaded = True
-            try:
-                txt_var = str([x.name.split('.')[2] for x in bpy.data.collections if x.name.split('.')[0] == asset
-                               and x.name.count('.') >= 4][0])
-            except IndexError:
-                txt_var = None
-            mdl_variations = [x.name for x in bpy.context.scene.view_layers if len(x.name) == 1]
-            reverse = False
-            #pipe_tool_all.filetype =
-
-            break
-
-    if reverse:
-        scene_has_been_loaded = False
-        txt_var = None
-    else:
-        if 'rotation_parent' in [obj.name for obj in bpy.data.objects]:
-            scene_is_turntable = True
-            #current_render_settings = f'cycles,turntable'
-
-    #pipe_tool_all.render_settings = current_render_settings
 
 
 class PipeSettingsShd(bpy.types.PropertyGroup):
@@ -1802,13 +1773,69 @@ def apply_render_settings(self, context):
 
 
 def apply_filetype(self, context):
-    global scene_has_been_loaded
-    if scene_has_been_loaded:
+    # global scene_has_been_loaded
+    if b_vars.scene_has_been_loaded:
         bpy.ops.pipe.all_filetype_apply()
 
 
+def apply_resolution(self, context):
+    catch_loading_scene('')
+    if b_vars.scene_has_been_loaded:
+        scene = context.scene
+        pipe_tool_all = scene.pipe_tool_all
+        resolution = pipe_tool_all.resolution
+        parts = resolution.split(' - ')
+        width, height = [int(x) for x in parts[-1].split('x')]
+
+        sensor_type = parts[1]
+        cam = bpy.context.scene.camera
+        if sensor_type == '35mm':
+            long = 22
+            short = 16
+            # w, h = parts[2].split('x')
+        elif sensor_type == 'Fullframe':
+            long = 36
+            short = 24
+            # w, h = parts[2].split('x')
+        elif sensor_type == 'Large Format':
+            if "5" in parts[0]:  # 4x5
+                long = 127
+                short = 101.6
+            else:  # 8x10
+                long = 254
+                short = 203.2
+            # w, h = parts[0].split('x')
+        else:  # sensor_type == 'Medium Format':
+            if "7" in parts[0]:  # 6x7
+                long = 70
+                short = 56
+            else:  # 6x6
+                long = 56
+                short = 56
+            # w, h = parts[0].split('x')
+
+        # Apply gathered values
+        #if int(w) > int(h):
+        orientation = pipe_tool_all.orientation
+        if orientation == 'Landscape':
+            #cam.data.sensor_fit = 'HORIZONTAL'
+            cam.data.sensor_width = long
+            cam.data.sensor_height = short
+
+            bpy.context.scene.render.resolution_x = width
+            bpy.context.scene.render.resolution_y = height
+        else:
+            #cam.data.sensor_fit = 'VERTICAL'
+            cam.data.sensor_width = short
+            cam.data.sensor_height = long
+
+            bpy.context.scene.render.resolution_x = height
+            bpy.context.scene.render.resolution_y = width
+        cam.data.sensor_fit = 'AUTO'
+
+
 def update_compositing_passes(self, context):
-    global root, project, asset, dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var
+    global dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var  # root, project, asset
 
     scene = context.scene
     pipe_tool_all = scene.pipe_tool_all
@@ -1819,7 +1846,7 @@ def update_compositing_passes(self, context):
         # Activate Passes
         if pipe_tool_all.compositing_passes:
             #file_config = '.\\config\\config_render_passes.json'
-            file_config = f'.\\projects\\{project}-{project_abbr}\\config_render_passes.json'
+            file_config = f'.\\projects\\{b_vars.project}-{b_vars.project_abbr}\\config_render_passes.json'
 
             with open(file_config, 'r') as json_file:
                 dict_config_render_passes = json.load(json_file)["render_passes"]
@@ -1888,7 +1915,7 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
     # model option is mandatory
     # add all animations to list
     # dir_pipe_anim = os.path.join(root, project, 'build', asset, '.pipeline', 'anm')
-    list_animations = [('MDL', f'MDL', '')]
+    """list_animations = [('MDL', f'MDL', '')]
 
     for animation in os.listdir(dir_pipe_anm):
         list_animations.append((animation, f'ANM    {animation}', ''))
@@ -1896,6 +1923,28 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
     model_selector: EnumProperty(
         items=list_animations,
         description='Select the model or animation you want to use',
+        name=''
+    )"""
+
+    list_animations = [('MDL', f'MDL', '')]
+    list_variations = [('A', 'A', '')]
+
+    if b_vars.department == 'build':
+        for animation in os.listdir(dir_pipe_anm):
+            list_animations.append((animation, f'ANM    {animation}', ''))
+        list_variations = [
+            (x, x, '') for x in os.listdir(dir_pipe_txt) if os.path.isdir(os.path.join(dir_pipe_txt, x))
+        ]
+
+    model_selector: EnumProperty(
+        items=list_animations,
+        description='Select the model or animation you want to use',
+        name=''
+    )
+
+    variation_selector: EnumProperty(
+        items=list_variations,
+        description='TXT variation.\nCan only be used before initial setup.',
         name=''
     )
 
@@ -1926,14 +1975,6 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
         soft_min=-360,
         soft_max=360,
         update=hdri_update_rotation
-    )
-
-    list_variations = [(x, x, '') for x in os.listdir(dir_pipe_txt) if os.path.isdir(os.path.join(dir_pipe_txt, x))]
-
-    variation_selector: EnumProperty(
-        items=list_variations,
-        description='TXT variation.\nCan only be used before initial setup.',
-        name=''
     )
 
     turntable_frames: IntProperty(
@@ -2062,7 +2103,7 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
         default='*'
     )
 
-    file_config = f'.\\projects\\{project}-{project_abbr}\\config_render_settings.json'
+    file_config = f'.\\projects\\{b_vars.project}-{b_vars.project_abbr}\\config_render_settings.json'
 
     with open(file_config, 'r') as json_file:
         dict_config_render_settings = json.load(json_file)
@@ -2076,14 +2117,14 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
     render_settings: EnumProperty(
         items=list_render_settings_parts,
         description='Applies render settings according to settings stored in the config_render_settings.json',
-        name='',
+        name='Preset',
         update=apply_render_settings
     )
 
     filetype: EnumProperty(
         items=[('EXR', 'EXR', ''), ('PNG', 'PNG', ''), ('JPEG', 'JPEG', '')],
         description='Changes the filetype that is used for rendering a sequence',
-        name='',
+        name='Filetype',
         update=apply_filetype
     )
 
@@ -2106,11 +2147,50 @@ class PipeSettingsAll(bpy.types.PropertyGroup):
         update=update_compositing_passes
     )
 
+    l_resolutions = b_vars.dict_sensors["sensors"]
+    """[
+        '2.35:1 - 35mm - 2880x1226',
+        '4K DCI - 35mm - 4096x2160',
+        '2K DCI - 35mm - 2048x1080',
+        '1440p - Fullframe - 2560x1440',
+        'Full HD - Fullframe - 1920x1080',
+        '3:2 - Fullframe - 2160x1440',
+        '4:3 - Fullframe - 1920x1440',
+        '8x10 - Large Format - 1800x1440',
+        '4x5 - Large Format - 1800x1440',
+        '6x7 - Medium Format - 1680x1440',
+        '6x6 - Medium Format - 1440x1440'
+    ]"""  # TODO 6x9, 645
+    """
+    '6x7 - Medium Format - 1440x1680',
+    '4x5 - Large Format - 1440x1800',
+    '8x10 - Large Format - 1440x1800',
+    '3:4 - Fullframe - 1440x1920',
+    '2:3 - Fullframe - 1440x2160',
+    'Full HD - Fullframe - 1080x1920',
+    '1440p - Fullframe - 1440x2560'
+    """
+    resolution: EnumProperty(
+        items=[(x, x, '') for x in l_resolutions],
+        description='Changes the render resolution and camera sensor size.',
+        name='Sensor',
+        update=apply_resolution
+    )
+    orientation: EnumProperty(
+        items=[('Landscape', 'Landscape', ''), ('Portrait', 'Portrait', '')],
+        description='Changes the orientation of the camera.',
+        name='',
+        update=apply_resolution
+    )
+    # TODO aperture control
+    # TODO focal length control
+    # TODO additional dropdown that sets Landscape or Portrait?
+
 
 class ShdUiPackageManagement(bpy.types.Panel):
     bl_idname = 'PIPE_PT_shd'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 0
@@ -2120,7 +2200,7 @@ class ShdUiPackageManagement(bpy.types.Panel):
         layout.label(text="Package Management")
 
     def draw(self, context):
-        global scene_has_been_loaded, txt_var, scene_is_turntable
+        global txt_var # scene_is_turntable  # scene_has_been_loaded,
         scene = context.scene
         #pipe_tool = scene.pipe_tool
         pipe_tool_all = scene.pipe_tool_all
@@ -2128,7 +2208,7 @@ class ShdUiPackageManagement(bpy.types.Panel):
         layout = self.layout
 
         row0 = layout.row()
-        if scene_has_been_loaded is False or scene_is_turntable is False:
+        if b_vars.scene_has_been_loaded is False or b_vars.scene_is_turntable is False:
             row0.label(text='MDL / ANM')
             row0.prop(pipe_tool_all, "model_selector")
 
@@ -2141,7 +2221,7 @@ class ShdUiPackageManagement(bpy.types.Panel):
             row2 = layout.row()
             column2.prop(pipe_tool_all, 'variation_selector')
 
-            if scene_has_been_loaded is False:
+            if b_vars.scene_has_been_loaded is False:
                 row2.operator('pipe.shd_setup')
             else:
                 column2.enabled = False
@@ -2154,7 +2234,7 @@ class ShdUiPackageManagement(bpy.types.Panel):
 class AllUiRenderSettings(bpy.types.Panel):
     bl_idname = 'PIPE_PT_all_render_settings'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 2
@@ -2164,7 +2244,7 @@ class AllUiRenderSettings(bpy.types.Panel):
         layout.label(text="Render Settings")
 
     def draw(self, context):
-        global scene_has_been_loaded, scene_is_turntable, txt_var, mdl_variations
+        global txt_var, mdl_variations  # scene_has_been_loaded, scene_is_turntable
 
         scene = context.scene
         pipe_tool_all = scene.pipe_tool_all
@@ -2173,34 +2253,36 @@ class AllUiRenderSettings(bpy.types.Panel):
         layout = self.layout
 
         row1 = layout.row()
-        if scene_has_been_loaded:
+        if b_vars.scene_has_been_loaded:
             column1 = row1.column()
-            #column2 = row1.column()
-
             column1.prop(pipe_tool_all, 'render_settings')
 
-            row3 = layout.row()
+            row2 = layout.row()
+            row2.prop(pipe_tool_all, 'resolution')
+            row2.prop(pipe_tool_all, 'orientation')
 
-            if scene_has_been_loaded and scene_is_turntable and \
+            row3 = layout.row()
+            if b_vars.scene_has_been_loaded and b_vars.scene_is_turntable and \
                     pipe_tool_all.render_flat_textures and pipe_tool_all.render_shading is False:
                 column1.enabled = False
 
             row3_column1 = row3.column()
-            row3_column2 = row3.column()
+            #row3_column2 = row3.column()
             row3_column1.prop(pipe_tool_all, 'filetype')
+            row4 = layout.row()
 
-            row3_column2.prop(pipe_tool_all, 'compositing_passes')
+            row4.prop(pipe_tool_all, 'compositing_passes')  # row3_column2
             if pipe_tool_all.filetype != 'EXR' or pipe_tool_all.render_settings.split(',')[0] != 'cycles':
-                row3_column2.enabled = False
+                row4.enabled = False  # row3_column2
 
             row = layout.row()
 
-            if discipline == 'shd' or scene_is_turntable:
+            if b_vars.discipline == 'shd' or b_vars.scene_is_turntable:
                 row.prop(pipe_tool_all, 'view_layers')
                 row.operator('pipe.shd_settings_variation_get')
                 row.operator('pipe.shd_settings_variation_set')
 
-            if scene_is_turntable is False:
+            if b_vars.scene_is_turntable is False:
                 row3 = layout.row()
                 row3.separator()
 
@@ -2223,7 +2305,7 @@ class AllUiRenderSettings(bpy.types.Panel):
 class ShdUiExport(bpy.types.Panel):
     bl_idname = 'PIPE_PT_shd_export'
     bl_label = ''
-    bl_category = f'Open Pipe {discipline.upper()}'
+    bl_category = f'Open Pipe {b_vars.discipline.upper()}'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_order = 3
@@ -2233,13 +2315,13 @@ class ShdUiExport(bpy.types.Panel):
         layout.label(text="Export")
 
     def draw(self, context):
-        global scene_has_been_loaded, scene_is_turntable
+        # global scene_is_turntable  # scene_has_been_loaded,
         scene = context.scene
         pipe_tool = scene.pipe_tool
 
         layout = self.layout
         row1 = layout.row()
-        if scene_has_been_loaded and scene_is_turntable is False:
+        if b_vars.scene_has_been_loaded and b_vars.scene_is_turntable is False:
             row1.prop(pipe_tool, 'push')
             row1.operator('pipe.shd_export')
         else:
@@ -2328,9 +2410,9 @@ class AllSettingsApply(bpy.types.Operator):
     bl_description = 'Updates the render settings according to the default settings for this purpose'
 
     def execute(self, context):
-        global scene_has_been_loaded
+        # global scene_has_been_loaded
         catch_loading_scene('')
-        if scene_has_been_loaded:
+        if b_vars.scene_has_been_loaded:
             scene = context.scene
             pipe_tool_all = scene.pipe_tool_all
             engine, settings = pipe_tool_all.render_settings.split(',')
@@ -2348,9 +2430,8 @@ class AllFiletypeApply(bpy.types.Operator):
     bl_description = 'Changes the filetype according to the selected option.'
 
     def execute(self, context):
-        global scene_has_been_loaded
         catch_loading_scene('')
-        if scene_has_been_loaded:
+        if b_vars.scene_has_been_loaded:
             scene = context.scene
             pipe_tool_all = scene.pipe_tool_all
             filetype = pipe_tool_all.filetype
@@ -2383,88 +2464,12 @@ class ShdExport(bpy.types.Operator):
         self.report({'INFO'}, 'SHD published.')
         return {'FINISHED'}
 
-
-class RenderSettings:
-    def __init__(self):
-        #file_config = '.\\config\\config_render_settings.json'
-        file_config = f'.\\projects\\{project}-{project_abbr}\\config_render_settings.json'
-
-        with open(file_config, 'r') as json_file:
-            self.dict_config = json.load(json_file)
-        self.cycles_settings = self.eevee_settings = None
-
-    def apply_external(self, engine, settings):
-        if engine == 'cycles':
-            bpy.context.scene.render.engine = engine.upper()
-            self.cycles_settings = self.dict_config[engine][settings]
-            self.apply_cycles()
-        elif engine == 'eevee':
-            bpy.context.scene.render.engine = 'BLENDER_EEVEE'
-            self.eevee_settings = self.dict_config[engine][settings]
-            self.apply_eevee()
-
-    def cycles_turntable(self):
-        bpy.context.scene.render.engine = 'CYCLES'
-        self.cycles_settings = self.dict_config["cycles"]["turntable"]
-        self.apply_cycles()
-
-    def cycles_shading(self):
-        bpy.context.scene.render.engine = 'CYCLES'
-        self.cycles_settings = self.dict_config["cycles"]["shading"]
-        self.apply_cycles()
-
-    def apply_eevee(self):
-        bpy.context.scene.eevee.taa_render_samples = self.eevee_settings["taa_render_samples"]
-        bpy.context.scene.eevee.taa_samples = self.eevee_settings["taa_samples"]
-
-        bpy.context.scene.eevee.use_gtao = self.eevee_settings["use_gtao"]
-        bpy.context.scene.eevee.gtao_distance = self.eevee_settings["gtao_distance"]
-        bpy.context.scene.eevee.use_bloom = self.eevee_settings["use_bloom"]
-        bpy.context.scene.eevee.bloom_threshold = self.eevee_settings["bloom_threshold"]
-        bpy.context.scene.eevee.bloom_intensity = self.eevee_settings["bloom_intensity"]
-        bpy.context.scene.eevee.use_ssr = self.eevee_settings["use_ssr"]
-        bpy.context.scene.eevee.use_ssr_halfres = self.eevee_settings["use_ssr_halfres"]
-        bpy.context.scene.eevee.ssr_border_fade = self.eevee_settings["ssr_border_fade"]
-        bpy.context.scene.eevee.ssr_thickness = self.eevee_settings["ssr_thickness"]
-        bpy.context.scene.render.use_high_quality_normals = True
-
-    def apply_cycles(self):
-        bpy.context.scene.cycles.device = 'GPU'
-        bpy.context.scene.cycles.samples = self.cycles_settings["samples"]
-        bpy.context.scene.cycles.preview_samples = self.cycles_settings["preview_samples"]
-        bpy.context.scene.cycles.use_animated_seed = self.cycles_settings["use_animated_seed"]
-
-        bpy.context.scene.cycles.max_bounces = self.cycles_settings["max_bounces"]
-        bpy.context.scene.cycles.diffuse_bounces = self.cycles_settings["diffuse_bounces"]
-        bpy.context.scene.cycles.glossy_bounces = self.cycles_settings["glossy_bounces"]
-        bpy.context.scene.cycles.transparent_max_bounces = self.cycles_settings["transparent_max_bounces"]
-        bpy.context.scene.cycles.transmission_bounces = self.cycles_settings["transmission_bounces"]
-        bpy.context.scene.cycles.sample_clamp_indirect = self.cycles_settings["sample_clamp_indirect"]
-
-        bpy.context.scene.render.film_transparent = self.cycles_settings["film_transparent"]
-
-        try:  # 2.93
-            bpy.context.scene.render.tile_x = self.cycles_settings["tile_x"]
-            bpy.context.scene.render.tile_y = self.cycles_settings["tile_y"]
-        except:  # 3.0
-            bpy.context.scene.cycles.tile_size = self.cycles_settings["tile_x"]
-
-
-        bpy.context.scene.cycles.blur_glossy = self.cycles_settings["blur_glossy"]
-
-        bpy.context.scene.render.resolution_x = self.cycles_settings["resolution_x"]
-        bpy.context.scene.render.resolution_y = self.cycles_settings["resolution_y"]
-
-        bpy.context.scene.cycles.use_adaptive_sampling = self.cycles_settings["use_adaptive_sampling"]
-        bpy.context.scene.cycles.adaptive_threshold = self.cycles_settings["adaptive_threshold"]
-        bpy.context.scene.cycles.adaptive_min_samples = self.cycles_settings["adaptive_min_samples"]
-
 # TODO use transparency and rendered backdrop? (not flexibel in terms of HDRI usage)
 
 
 class ShdExportFunctions:
     def __init__(self):
-        global asset, discipline, root, project, dir_shd, dir_pipe_shd, user, txt_var
+        global dir_shd, dir_pipe_shd, txt_var  # root, project, discipline, asset, user
 
     def create_export_directories(self):
         dir_shd_variation = str(os.path.join(dir_shd, '.pantry', str(txt_var)))
@@ -2509,14 +2514,14 @@ class ShdExportFunctions:
             ShdExportFunctions.create_export_directories(self)
 
         # SAVE BLEND FILE
-        file_blend_shd = os.path.join(dir_shd_variation, version_cur, f'{asset}.blend')
+        file_blend_shd = os.path.join(dir_shd_variation, version_cur, f'{b_vars.asset}.blend')
         bpy.ops.wm.save_as_mainfile(filepath=file_blend_shd, copy=True)
 
         # JSON FILE - VERSION
-        file_json_version = os.path.join(dir_pipe_shd_versions, f'{asset}.{json_version_cur}.json')
+        file_json_version = os.path.join(dir_pipe_shd_versions, f'{b_vars.asset}.{json_version_cur}.json')
 
         dict_version_info = {
-            "artist": user,
+            "artist": b_vars.user,
             "time": str(datetime.now()).split('.')[0],
             "version": version_cur,
             "published": push
@@ -2553,7 +2558,7 @@ class ShdUpdateAsset(bpy.types.Operator):
     bl_description = 'Updates MDL/TXT packages used by this scene.'
 
     def execute(self, context):
-        global root, project, asset, dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var
+        global dir_asset, dir_pipe, dir_pipe_mdl, dir_pipe_txt, txt_var  # root, project, asset
 
         remove_empty_collections()
         file_mdl_package = os.path.join(dir_pipe_mdl, 'mdl_package.json')
@@ -2606,7 +2611,8 @@ def create_camera():
 
     # Left/Right centering and framing compensation
     fov_default = math.degrees(cam_data.angle)
-    fov_factor = 1 if bpy.context.scene.render.resolution_x > bpy.context.scene.render.resolution_y else bpy.context.scene.render.resolution_x / bpy.context.scene.render.resolution_y
+    fov_factor = 1 if bpy.context.scene.render.resolution_x > bpy.context.scene.render.resolution_y \
+        else bpy.context.scene.render.resolution_x / bpy.context.scene.render.resolution_y
     fov = fov_default * fov_factor * 0.5
     offset = abs(cam_obj.location[0] / math.tan(math.radians(fov)))
     cam_obj.location[0] = 0
@@ -2636,7 +2642,7 @@ class ShdSetup(bpy.types.Operator):
         # RENDER SETTINGS
         RenderSettings().cycles_shading()
 
-        global root, project, asset, dir_pipe_mdl, dir_pipe_txt, txt_var
+        global dir_pipe_mdl, dir_pipe_txt, txt_var  # root, project, asset
         pipe_tool_all = context.scene.pipe_tool_all
 
         txt_var = pipe_tool_all.variation_selector
@@ -2677,9 +2683,12 @@ class ShdSetup(bpy.types.Operator):
                             initialise_texture_variation(dict_mdl_package, dict_mdl_variations, selected_model)
 
                             pipe_tool_all.render_settings = 'cycles,shading'
+                            apply_sensor_preset(pipe_tool_all, 'cycles', 'shading')
 
                             # CREATE CAMERA
-                            objects_of_asset = [x for x in bpy.data.objects if asset in x.name and x.library is None]
+                            objects_of_asset = [
+                                x for x in bpy.data.objects if b_vars.asset in x.name and x.library is None
+                            ]
                             for obj in objects_of_asset:
                                 obj.select_set(True)
                             #create_camera()
@@ -2702,8 +2711,8 @@ class ShdSetup(bpy.types.Operator):
 def archive_for_update(mdl_version, current_mdl_collection):
     global dir_asset, dir_mdl
     dir_mdl_version = os.path.join(dir_mdl, '.pantry', mdl_version)
-    blend_mdl_version = os.path.join(dir_mdl_version, f'{asset}.blend')
-    blend_mdl_collection = os.path.join(blend_mdl_version, 'Collection', asset)
+    blend_mdl_version = os.path.join(dir_mdl_version, f'{b_vars.asset}.blend')
+    blend_mdl_collection = os.path.join(blend_mdl_version, 'Collection', b_vars.asset)
 
     # Archive existing objects and their material
     dict_previous_objects = {}
@@ -2760,7 +2769,7 @@ def assign_missing_mat(obj):
 
 
 def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
-    global asset, dir_asset, txt_var
+    global dir_asset, txt_var  # asset
     active_view_layer = bpy.context.window.view_layer.name
 
     view_layer_names = [x.name for x in bpy.context.scene.view_layers]
@@ -2771,9 +2780,8 @@ def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
         bpy.context.window.view_layer = bpy.context.scene.view_layers["View Layer"]
 
     current_variation_collections = [x for x in bpy.data.collections
-                                     if x.name.split('.')[0] == asset
+                                     if x.name.split('.')[0] == b_vars.asset
                                      and x.name.split('.')[1] == '*']
-    print('AAA', current_variation_collections)
     current_mdl_collection = current_variation_collections[0]
     current_mdl_version = current_mdl_collection.name.split('.')[-1]
 
@@ -2781,9 +2789,9 @@ def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
 
     pipe_tool_all = bpy.context.scene.pipe_tool_all
 
-    mdl_version = dict_mdl_package[discipline]
+    mdl_version = dict_mdl_package[b_vars.discipline]
     if new_mdl_package_type == 'mdl':
-        file_anm_version = os.path.join(dir_pipe_mdl, 'versions', f'{asset}.{mdl_version}.json')
+        file_anm_version = os.path.join(dir_pipe_mdl, 'versions', f'{b_vars.asset}.{mdl_version}.json')
 
         with open(file_anm_version, 'r') as json_file:
             dict_mdl_version = json.load(json_file)
@@ -2874,13 +2882,11 @@ def update_model(new_mdl_package_type, dict_mdl_package, dict_mdl_variations):
 
 
 def update_textures():
-    global root, project, asset, discipline, dir_asset, dir_pipe_txt, txt_var
+    global dir_asset, dir_pipe_txt, txt_var  # root, project, discipline, asset
 
     #asset_collections = [x for x in bpy.data.collections if x.name.split('.')[0] == asset]
 
     dir_txt_package = os.path.join(dir_pipe_txt, str(txt_var), 'txt_package')
-
-    global discipline
     channels_json = [x for x in os.listdir(dir_txt_package)
                      if os.path.isfile(os.path.join(dir_txt_package, x))]
 
@@ -2956,7 +2962,7 @@ def update_udim_range(img):
 
 
 def load_remaining_textures(dir_txt_package, previously_loaded_channels, ):
-    global discipline, dir_asset
+    global dir_asset
     channels_json = [x for x in os.listdir(dir_txt_package)
                      if os.path.isfile(os.path.join(dir_txt_package, x))]
 
@@ -2969,22 +2975,22 @@ def load_remaining_textures(dir_txt_package, previously_loaded_channels, ):
 
 
 def import_model(dict_mdl_package, dir_asset, dict_mdl_variations, txt_variation, mdl_type):
-    global asset, discipline, project, root
+    # global asset  # discipline, project, root
 
     #~file_anm_version = os.path.join(dir_pipe_mdl, 'versions', f'{asset}.{mdl_version}.json')
     # --- MODEL ---------
-    mdl_version = dict_mdl_package[discipline]
+    mdl_version = dict_mdl_package[b_vars.discipline]
     pipe_tool_all = bpy.context.scene.pipe_tool_all
     selected_model = pipe_tool_all.model_selector
 
     if mdl_type == 'MDL':
-        file_anm_version = os.path.join(dir_pipe_mdl, 'versions', f'{asset}.{mdl_version}.json')
+        file_anm_version = os.path.join(dir_pipe_mdl, 'versions', f'{b_vars.asset}.{mdl_version}.json')
 
         with open(file_anm_version, 'r') as json_file:
             dict_mdl_version = json.load(json_file)
         mdl_version = dict_mdl_version['version']
         dir_mdl_version = os.path.join(dir_asset, 'mdl', '.pantry', mdl_version)
-        blend_mdl_version = os.path.join(dir_mdl_version, f'{asset}.blend')
+        blend_mdl_version = os.path.join(dir_mdl_version, f'{b_vars.asset}.blend')
     else:
         file_anm_version = os.path.join(dir_pipe_anm, selected_model,
                                         'versions', f'{selected_model}.{mdl_version}.json')
@@ -2995,19 +3001,19 @@ def import_model(dict_mdl_package, dir_asset, dict_mdl_variations, txt_variation
         dir_mdl_version = os.path.join(dir_asset, 'anm', '.pantry', mdl_type, mdl_version)
         blend_mdl_version = os.path.join(dir_mdl_version, f'{mdl_type}.blend')
 
-    blend_mdl_collection = os.path.join(blend_mdl_version, 'Collection', asset)
-
-    bpy.ops.wm.append(directory=f'{blend_mdl_version}\\Collection\\', filepath=f'{asset}.blend', filename=asset,
-                      autoselect=True)
+    bpy.ops.wm.append(
+        directory=f'{blend_mdl_version}\\Collection\\', filepath=f'{b_vars.asset}.blend', filename=b_vars.asset,
+        autoselect=True
+    )
     objects = [x for x in bpy.context.selected_objects]
 
     # link to main scene collection instead of sub-collection
     for col in bpy.data.collections:
-        if asset in col.children:
-            col.children.unlink(bpy.data.collections[asset])
-    bpy.data.collections[asset].use_fake_user = True
+        if b_vars.asset in col.children:
+            col.children.unlink(bpy.data.collections[b_vars.asset])
+    bpy.data.collections[b_vars.asset].use_fake_user = True
     try:
-        bpy.context.scene.collection.children.unlink(bpy.data.collections[asset])
+        bpy.context.scene.collection.children.unlink(bpy.data.collections[b_vars.asset])
     except RuntimeError:
         pass
 
@@ -3015,16 +3021,16 @@ def import_model(dict_mdl_package, dir_asset, dict_mdl_variations, txt_variation
 
     # ADD VERSION NUMBER TO COLLECTION NAME
     if mdl_type == 'MDL':
-        bpy.data.collections[asset].name = f'{asset}.*.{txt_variation}.mdl.{mdl_version}'
+        bpy.data.collections[b_vars.asset].name = f'{b_vars.asset}.*.{txt_variation}.mdl.{mdl_version}'
     else:
-        bpy.data.collections[asset].name = f'{asset}.*.{txt_variation}.{mdl_type}.{mdl_version}'
+        bpy.data.collections[b_vars.asset].name = f'{b_vars.asset}.*.{txt_variation}.{mdl_type}.{mdl_version}'
 
     # Set up clean render camera
     if 'render_cam' not in [x.name for x in bpy.data.cameras]:
         for camera in bpy.data.cameras:
             bpy.data.cameras.remove(camera)
 
-        objects_of_asset = [x for x in bpy.data.objects if asset in x.name and x.library is None]
+        objects_of_asset = [x for x in bpy.data.objects if b_vars.asset in x.name and x.library is None]
         for obj in objects_of_asset:
             obj.select_set(True)
         create_camera()
@@ -3041,7 +3047,7 @@ def create_collections_and_view_layers(dict_mdl_variations, txt_variation, objec
     collections = []
     # CREATE COLLECTIONS AND VIEW LAYERS
     for mdl_var in mdl_variations_of_txt_var:
-        new_col = bpy.data.collections.new(f'{asset}.{mdl_var}.{txt_variation}')
+        new_col = bpy.data.collections.new(f'{b_vars.asset}.{mdl_var}.{txt_variation}')
         new_col.use_fake_user = True
 
         bpy.context.scene.collection.children.link(new_col)
@@ -3060,7 +3066,7 @@ def create_collections_and_view_layers(dict_mdl_variations, txt_variation, objec
         for col_var in collections:
             bpy.context.view_layer.active_layer_collection = \
                 bpy.context.view_layer.layer_collection.children[col_var.name]
-            if col_var.name == f'{asset}.{mdl_var}.{txt_variation}':
+            if col_var.name == f'{b_vars.asset}.{mdl_var}.{txt_variation}':
                 bpy.context.view_layer.active_layer_collection.exclude = False
             else:
                 bpy.context.view_layer.active_layer_collection.exclude = True
@@ -3081,10 +3087,10 @@ def create_collections_and_view_layers(dict_mdl_variations, txt_variation, objec
             # ASSIGN OBJECTS TO MODEL VARIATION COLLECTIONS
             if '*' in obj_mdl_var:
                 for mdl_var in mdl_variations_of_txt_var:
-                    bpy.data.collections[f'{asset}.{mdl_var}.{txt_variation}'].objects.link(obj)
+                    bpy.data.collections[f'{b_vars.asset}.{mdl_var}.{txt_variation}'].objects.link(obj)
             elif len(mdl_var_overlap) != 0:
                 for mdl_var in mdl_var_overlap:
-                    bpy.data.collections[f'{asset}.{mdl_var}.{txt_variation}'].objects.link(obj)
+                    bpy.data.collections[f'{b_vars.asset}.{mdl_var}.{txt_variation}'].objects.link(obj)
 
     # Deselect all items assigned to view layers
     for vl in bpy.context.scene.view_layers:
@@ -3100,13 +3106,13 @@ def create_collections_and_view_layers(dict_mdl_variations, txt_variation, objec
 
 
 def initialise_texture_variation(dict_mdl_package, dict_mdl_variations, mdl_type):
-    global root, project, asset, discipline, dir_asset, dir_pipe_txt, txt_var
+    global dir_asset, dir_pipe_txt, txt_var  # root, project, discipline, asset
 
     objects, mdl_variations_of_txt_var = import_model(dict_mdl_package, dir_asset, dict_mdl_variations, txt_var,
                                                       mdl_type)
 
     # CREATE DEFAULT MATERIAL
-    mat = bpy.data.materials.new(name=f'{asset}.{txt_var}.main')
+    mat = bpy.data.materials.new(name=f'{b_vars.asset}.{txt_var}.main')
     mat.use_nodes = True
 
     # ASSIGN MATERIAL
@@ -3219,7 +3225,7 @@ def initialise_texture_variation(dict_mdl_package, dict_mdl_variations, mdl_type
 
 
 def get_channel_dir(dir_txt_package, channel):
-    global discipline, dir_asset, dir_txt, txt_var, asset
+    global dir_asset, dir_txt, txt_var  # , asset
     dir_txt_tmp = dir_txt
     txt_variation = txt_var  # necessary to avoid switching TXT variation of this scene, by linking external
     channels_json = [x for x in os.listdir(dir_txt_package)
@@ -3239,15 +3245,15 @@ def get_channel_dir(dir_txt_package, channel):
         txt_variation = dict_external["variation"]
         channel = dict_external["channel"]
 
-        global root, project
-        dir_txt_package = os.path.join(root, project, 'build', src_asset, '.pipeline', 'txt',
+        # global project  # root
+        dir_txt_package = os.path.join(b_vars.root, b_vars.project, 'build', src_asset, '.pipeline', 'txt',
                                        txt_variation, 'txt_package')
         file_channel = os.path.join(dir_txt_package, f'{channel}.json')
-        dir_txt_tmp = dir_txt.replace(asset, src_asset)
+        dir_txt_tmp = dir_txt.replace(b_vars.asset, src_asset)
 
     with open(file_channel, 'r') as json_file:
         dict_channel = json.load(json_file)
-    version = dict_channel[discipline]
+    version = dict_channel[b_vars.discipline]
 
     if version != '' or channel not in [x.split('.')[0] for x in channels_json_native]:
         if version == '':
@@ -3268,18 +3274,25 @@ def get_channel_dir(dir_txt_package, channel):
 
 
 def load_image(dir_channel_textures, filepath, files, name, file_1):
-    # print('file_1', file_1)
-    bpy.ops.image.open(filepath=filepath, directory=dir_channel_textures, files=files, relative_path=False,
-                       show_multiview=False, use_sequence_detection=False)
+    bpy.ops.image.open(
+        filepath=filepath, directory=dir_channel_textures, files=files, relative_path=False,
+        show_multiview=False, use_sequence_detection=False
+    )
     # images = [x.name for x in bpy.data.images]
     # Change import name inconsistencies between blender versions.
-    if bpy.app.version_string[:3] == '3.0':
+    if bpy.app.version_string[:3] in ['3.0']:
         texture_import = bpy.data.images[name]
-    elif bpy.app.version_string[:3] == '3.1':
+    elif bpy.app.version_string[:3] in ['3.1', '3.2', '3.3']:
         nm_parts = file_1.split('.')
         nm_parts[-2] = '<UDIM>'
         name31 = '.'.join(nm_parts)
-        texture_import = bpy.data.images[name31]  #.name = name
+        #name31 = nm_parts[0]
+        image_names = [x.name for x in bpy.data.images]
+        if name31 in image_names:  # texture has just been imported
+            texture_import = bpy.data.images[name31]  #.name = name
+        else:  # Texture was already imported and renamed
+            texture_import = bpy.data.images[nm_parts[0]]  #.name = name
+
     else:  # 2.93
         texture_import = bpy.data.images[file_1]
 
@@ -3335,6 +3348,8 @@ def setup_texture(dir_channel_textures, mat, slot, count, name, subchannel):
             filepath = os.path.join(dir_channel_textures, textures_of_filetype[0])
             files = [{"name": texture} for texture in textures_of_filetype]
             # Import textures
+
+            print("LOAD ", dir_channel_textures)
             texture_import = load_image(dir_channel_textures, filepath, files, name, textures_of_filetype[0])
 
         if mat is not None:
@@ -3396,46 +3411,71 @@ def setup_texture(dir_channel_textures, mat, slot, count, name, subchannel):
 
 
 # TODO create UI for selecting model variations
-# TODO import all textures, even those that don't need to be connected by default
 # TODO ui for selecting which variations to actively render
-
-# TODO texture variation as scene? (needs separate geo... or can it do material overridees?)
 
 # TODO update colourspace when textures are updated and it differs
 
 
-all_classes = (PipeSettingsAll, AllOpenOutput, AllUiRenderSettings, AllTurntableRender, AllSettingsApply,
-               AllSetupTurntable, AllFiletypeApply,
-               AllTurntableUpdate, AllUiTurntable)
-mdl_classes = (MdlRemoveFrom, AllSettingsVariationGet, AllSettingsVariationSet, MdlSelectExclusive,
-               MdlVariationDelete, MdlVariationAdd, MdlVariationApply,
-               MdlExport, MdlUiVariation, MdlUiExport)
+all_classes = (
+    PipeSettingsAll, AllOpenOutput, AllUiRenderSettings, AllTurntableRender, AllSettingsApply, AllSetupTurntable,
+    AllFiletypeApply
+)
+build_classes = (BuildUiTurntable, BuildTurntableUpdate)
+sht_classes = (
+    ShotUiMain, ShotAddAsset, ShotChangeVariation, ShotReplaceAsset, ShotUpdateAsset, ShotUpdateAssets,
+    ShotListVariations
+)
+#sht_classes = (sht.ShotUiMain, sht.ShotAddAsset, sht.ShotChangeVariation, sht.ShotChangeAsset)
+mdl_classes = (
+    MdlRemoveFrom, AllSettingsVariationGet, AllSettingsVariationSet, MdlSelectExclusive, MdlVariationDelete,
+    MdlVariationAdd, MdlVariationApply, MdlExport, MdlUiVariation, MdlUiExport
+)
 txt_classes = (AllSettingsVariationGet, AllSettingsVariationSet)
-shd_classes = (ShdExport, ShdUpdateAsset, ShdSetup,
-               ShdUiPackageManagement, AllSettingsVariationGet, AllSettingsVariationSet, ShdUiExport)
+shd_classes = (
+    ShdExport, ShdUpdateAsset, ShdSetup, ShdUiPackageManagement, AllSettingsVariationGet, AllSettingsVariationSet,
+    ShdUiExport
+)
 
 
 def register():
-    """ Is run when enabling the plugin
-    """
-    global discipline
-
+    """Is run when enabling the plugin."""
     for item in all_classes:
         bpy.utils.register_class(item)
 
     bpy.types.Scene.pipe_tool_all = PointerProperty(type=PipeSettingsAll)
 
-    if discipline == 'mdl':
+    if b_vars.department == 'build':
+        for item in build_classes:
+            bpy.utils.register_class(item)
+    else:
+        #bpy.utils.register_class(SequenceSettingsVariations)
+        for item in sht_classes:
+            bpy.utils.register_class(item)
+
+        catch_loading_scene('')
+        if catch_loading_scene not in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.append(catch_loading_scene)
+        if catch_loading_scene not in bpy.app.handlers.undo_post:
+            bpy.app.handlers.undo_post.append(catch_loading_scene)
+        if catch_loading_scene not in bpy.app.handlers.redo_post:
+            bpy.app.handlers.redo_post.append(catch_loading_scene)
+
+        #bpy.types.Scene.pipe_tool_sht = PointerProperty(type=SequenceSettingsVariations)
+        # bpy.ops.pipe.sht_add_asset('INVOKE_DEFAULT')
+
+    if b_vars.discipline == 'mdl':
         bpy.utils.register_class(PipeSettingsMdl)
         bpy.types.Scene.pipe_tool = PointerProperty(type=PipeSettingsMdl)
         for mdl_class in mdl_classes:
             bpy.utils.register_class(mdl_class)
 
-    if discipline == 'txt':
+    if b_vars.discipline == 'txt':
         if catch_loading_scene not in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.append(catch_loading_scene)
         if catch_loading_scene not in bpy.app.handlers.undo_post:
             bpy.app.handlers.undo_post.append(catch_loading_scene)
+        if catch_loading_scene not in bpy.app.handlers.redo_post:
+            bpy.app.handlers.redo_post.append(catch_loading_scene)
 
         bpy.utils.register_class(PipeSettingsTxt)
         bpy.types.Scene.pipe_tool = PointerProperty(type=PipeSettingsTxt)
@@ -3443,12 +3483,14 @@ def register():
         for txt_class in txt_classes:
             bpy.utils.register_class(txt_class)
 
-    if discipline == 'shd':
+    if b_vars.discipline == 'shd':
         catch_loading_scene('a')
         if catch_loading_scene not in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.append(catch_loading_scene)
         if catch_loading_scene not in bpy.app.handlers.undo_post:
             bpy.app.handlers.undo_post.append(catch_loading_scene)
+        if catch_loading_scene not in bpy.app.handlers.redo_post:
+            bpy.app.handlers.redo_post.append(catch_loading_scene)
 
         bpy.utils.register_class(PipeSettingsShd)
         bpy.types.Scene.pipe_tool = PointerProperty(type=PipeSettingsShd)
@@ -3460,28 +3502,36 @@ def register():
 
 
 def unregister():
-    """ Is run when disabling the plugin
-    """
-    global discipline
+    """Is run when disabling the plugin."""
 
     for item in all_classes:
         bpy.utils.unregister_class(item)
 
-    if discipline == 'mdl':
+    if b_vars.department == 'build':
+        for item in build_classes:
+            bpy.utils.unregister_class(item)
+    else:
+        for item in sht_classes:
+            bpy.utils.unregister_class(item)
+        #bpy.utils.unregister_class(SequenceSettingsVariations)
+
+    if b_vars.discipline == 'mdl':
         bpy.utils.unregister_class(PipeSettingsMdl)
         for mdl_class in mdl_classes:
             bpy.utils.unregister_class(mdl_class)
 
-    if discipline == 'txt':
+    if b_vars.discipline == 'txt':
         bpy.utils.unregister_class(PipeSettingsTxt)
         for txt_class in txt_classes:
             bpy.utils.unregister_class(txt_class)
 
-    if discipline == 'shd':
+    if b_vars.discipline == 'shd':
         if catch_loading_scene in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.remove(catch_loading_scene)
         if catch_loading_scene in bpy.app.handlers.undo_post:
             bpy.app.handlers.undo_post.remove(catch_loading_scene)
+        if catch_loading_scene in bpy.app.handlers.redo_post:
+            bpy.app.handlers.redo_post.remove(catch_loading_scene)
 
         bpy.utils.unregister_class(PipeSettingsShd)
 

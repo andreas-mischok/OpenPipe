@@ -1,6 +1,7 @@
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  Created by Andreas Mischok
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+import collections
 
 from pipe_utils import *
 
@@ -15,7 +16,8 @@ class ProjectCreator:
             self.col_bt_bg_blue = self.col_bt_bg_blue_active = self.col_bt_bg_blue_highlight = \
             self.ui_proxy = self.ui_child = self.x_offset = self.y_offset = self.col_wdw_title = \
             self.col_wdw_border = self.col_wdw_border_background = self.col_dd_blue_default = \
-            self.frame_hdris = None
+            self.frame_hdris = self.col_bt_petrol = self.col_bt_petrol_highlight = self.col_bt_green_highlight = \
+            self.col_bt_green = None
 
         self.hdri_list = {}
 
@@ -24,13 +26,12 @@ class ProjectCreator:
         self.software_list_variables = []
         # self.version = os.path.basename(__file__).split('_')[-1][:-3]
         json_load_ui_variables(self, r'.\ui\defaults_ui.json')
+        self.col_ui_dd_default = self.col_bt_petrol
+        self.col_ui_dd_default_highlight = self.col_bt_petrol_highlight
         # self.create_ui(None)
 
     def hdri_add(self):
-        """ Adds new line to the HDRIs section of the window.
-
-        :return:
-        """
+        """Adds new line to the HDRIs section of the window."""
         index = len(self.hdri_list)
         row = index + 2
 
@@ -47,8 +48,10 @@ class ProjectCreator:
                                  fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
                                  selectcolor=self.col_bt_bg_active,
                                  command=lambda x=index, y=tkvar_default: self.hdri_set_default(x, y))
-        CreateToolTip(cb_default,
-                      "Use this HDRI as the default HDRI picked up by other pipeline scripts.")
+        CreateToolTip(
+            cb_default,
+            "Use this HDRI as the default HDRI picked up by other pipeline scripts.", None, None, False
+        )
 
         tkvar_path = StringVar()
         i_path = Entry(self.frame_hdris, bd=1, textvariable=tkvar_path, width=15,
@@ -68,8 +71,8 @@ class ProjectCreator:
 
         default_contrast = 'medium'
         dd_hdri_contrast = Menubutton(self.frame_hdris, text=default_contrast, width=8,
-                                      bg=self.col_bt_bg_blue, fg=self.col_bt_fg_default,
-                                      highlightthickness=0, activebackground=self.col_bt_bg_blue_highlight,
+                                      bg=self.col_ui_dd_default, fg=self.col_bt_fg_default,
+                                      highlightthickness=0, activebackground=self.col_ui_dd_default_highlight,
                                       anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
                                       relief=self.def_bt_relief, justify=RIGHT)
         dd_hdri_contrast.menu = Menu(dd_hdri_contrast, tearoff=0, bd=0, activeborderwidth=3,
@@ -118,7 +121,6 @@ class ProjectCreator:
 
         :param dd: The ui element of the Menubutton/Dropdown
         :param value:
-        :return:
         """
         for hdri in self.hdri_list:
             if dd in self.hdri_list[hdri]["ui"]:
@@ -133,7 +135,6 @@ class ProjectCreator:
 
         :param index: Index of the CheckButton that the user clicked on.
         :param tkvar_default: The tk variable linked to the given CheckButton.
-        :return:
         """
         if tkvar_default.get() is True:
             for i in self.hdri_list:
@@ -149,7 +150,6 @@ class ProjectCreator:
         """ Removes a row from the HDRI section of the UI.
 
         :param index: The index of the given HDRI.
-        :return:
         """
         for i in self.hdri_list:
             if int(i) == index:
@@ -172,10 +172,8 @@ class ProjectCreator:
         del self.hdri_list[str(len(self.hdri_list)-1)]
 
     def software_add(self):
-        """ Adds a line to the software section of the UI.
+        """Adds a line to the software section of the UI."""
 
-        :return:
-        """
         index = len(self.software_list_ui)
         row = 2 + index
 
@@ -212,9 +210,11 @@ class ProjectCreator:
                                  selectcolor=self.col_bt_bg_active,
                                  command=lambda x=[tkvar_ocio_support, i_ocio_alternative, bt_ocio_pick]:
                                  custom_ocio_state(x))
-        CreateToolTip(cb_support,
-                      "Uncheck for software that doesn't support custom OCIOs. \n(e.g. Mari Non-Commercial) \n\n"
-                      "This prevents possible error messages from showing up.")
+        CreateToolTip(
+            cb_support,
+            "Uncheck for software that doesn't support custom OCIOs. \n(e.g. Mari Non-Commercial) \n\n"
+            "This prevents possible error messages from showing up.",
+            None, None, False)
 
         bt_delete = Button(self.frame_software_header, text='-', bg=self.col_bt_bg_default,
                            fg=self.col_bt_fg_default, activebackground=self.col_bt_bg_active,
@@ -241,7 +241,6 @@ class ProjectCreator:
         """ Removes a row from the software section of the UI.
 
         :param index: The index of the software which should be removed.
-        :return:
         """
         for ui_element in self.software_list_ui[index]:
             ui_element.destroy()
@@ -259,7 +258,6 @@ class ProjectCreator:
         """ Loads information from a preexisting show into the UI inputs.
 
         :param config: Path to the config that is to be used.
-        :return:
         """
         with open(config, 'r') as config_file:
             config_file_content = json.load(config_file)
@@ -312,10 +310,7 @@ class ProjectCreator:
                 #self.hdri_list[str(i)]["contrast"] = hdris[hdri]['contrast']
 
     def save_show(self):
-        """ Saves the input to a json file located in './projects/<ProjectName>'.
-
-        :return:
-        """
+        """Saves the input to a json file located in './projects/<ProjectName>'."""
         name = self.tkvar_project_name.get()
         abbr = self.tkvar_project_abbreviation.get()
         ocio = self.tkvar_ocio.get()
@@ -339,6 +334,7 @@ class ProjectCreator:
                             dict_software[label] = dict_software_info
 
                     if len(dict_software) > 0:
+                        dict_software = collections.OrderedDict(sorted(dict_software.items()))
                         hdri_labels = [self.hdri_list[hdri]["label_var"].get() for hdri in self.hdri_list]
                         hdri_paths = [self.hdri_list[hdri]["path_var"].get() for hdri in self.hdri_list]
                         hdri_offsets = [self.hdri_list[hdri]["rotation_var"].get() for hdri in self.hdri_list]
@@ -439,23 +435,37 @@ class ProjectCreator:
             messagebox.showerror(title='Error', message=message)
 
     def copy_configs(self, dir_json_output):
-        src_config_sd = os.path.join(os.path.abspath('./'), 'config',
-                                     'config_subdivision.json')
-        trgt_config_sd = os.path.join(dir_json_output,
-                                      'config_subdivision.json')
+        src_config_sd = os.path.join(
+            os.path.abspath('./'), 'config', 'config_subdivision.json'
+        )
+        trgt_config_sd = os.path.join(
+            dir_json_output, 'config_subdivision.json'
+        )
         shutil.copy(src_config_sd, trgt_config_sd)
 
-        src_config_sd = os.path.join(os.path.abspath('./'), 'config',
-                                     'config_render_passes.json')
-        trgt_config_sd = os.path.join(dir_json_output,
-                                      'config_render_passes.json')
+        src_config_sd = os.path.join(
+            os.path.abspath('./'), 'config', 'config_render_passes.json'
+        )
+        trgt_config_sd = os.path.join(
+            dir_json_output, 'config_render_passes.json'
+        )
         shutil.copy(src_config_sd, trgt_config_sd)
 
-        src_config_sd = os.path.join(os.path.abspath('./'), 'config',
-                                     'config_render_settings.json')
-        trgt_config_sd = os.path.join(dir_json_output,
-                                      'config_render_settings.json')
+        src_config_sd = os.path.join(
+            os.path.abspath('./'), 'config', 'config_render_settings.json'
+        )
+        trgt_config_sd = os.path.join(
+            dir_json_output, 'config_render_settings.json'
+        )
         shutil.copy(src_config_sd, trgt_config_sd)
+
+        src_config_sensors = os.path.join(
+            os.path.abspath('./'), 'config', 'config_sensors.json'
+        )
+        trgt_config_sensors = os.path.join(
+            dir_json_output, 'config_sensors.json'
+        )
+        shutil.copy(src_config_sensors, trgt_config_sensors)
 
     def write_file(self, path_json_output, path_full_json_output, dict_project):
         """ Called by self.save_show(). Writes the given information to the json output.
@@ -463,7 +473,6 @@ class ProjectCreator:
         :param path_json_output: Directory in which the file will be stored.
         :param path_full_json_output: Full path to the json file itself.
         :param dict_project: Content that is to be stored in the json file.
-        :return:
         """
         if os.path.isdir(path_json_output) is False:
             os.makedirs(path_json_output)
@@ -474,6 +483,12 @@ class ProjectCreator:
         close_sub_ui(self.ui_proxy)
 
         messagebox.showinfo(title='', message='Project configuration saved successfully.')
+
+    def on_bt_enter_green(self, e):
+        e.widget['background'] = self.col_bt_green_highlight
+
+    def on_bt_leave_green(self, e):
+        e.widget['background'] = self.col_bt_green
 
     def move_window_offset(self, event):
         window_x = self.ui_child.winfo_x()
@@ -584,6 +599,9 @@ class ProjectCreator:
         bt_ocio.grid(row=2, column=2, sticky=NSEW, padx=self.default_padding, pady=self.default_padding)
         bt_save.grid(row=1, column=3, rowspan=2, sticky=NSEW, padx=self.default_padding, pady=self.default_padding)
 
+        bt_save.bind('<Enter>', self.on_bt_enter_green)
+        bt_save.bind('<Leave>', self.on_bt_leave_green)
+
         # ------- Third Row ------------------------------------------------------------------------------
         # ------- Second Row
         # --- Root
@@ -621,7 +639,7 @@ class ProjectCreator:
                             bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         CreateToolTip(lbl_support,
                       "Uncheck for software that doesn't support custom OCIOs. \n(e.g. Mari Non-Commercial) \n\n"
-                      "This prevents possible error messages from showing up.")
+                      "This prevents possible error messages from showing up.", None, None, False)
         lbl_ocio_alternative = Label(self.frame_software_header, bd=1, text='alternative OCIO', width=19,
                                      bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         bt_software_add = Button(self.frame_software_header, text='+', width=4, bg=self.col_bt_bg_default,
@@ -654,12 +672,12 @@ class ProjectCreator:
         lbl_default = Label(self.frame_hdris, bd=1, text='Default', padx=4,
                             bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         CreateToolTip(lbl_default,
-                      "Use this HDRI as the default HDRI picked up by other pipeline scripts.")
+                      "Use this HDRI as the default HDRI picked up by other pipeline scripts.", None, None, False)
 
         lbl_offset = Label(self.frame_hdris, bd=1, text='Rot', padx=4,
                            bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         CreateToolTip(lbl_offset,
-                      "Rotational offset used for this HDRI.")
+                      "Rotational offset used for this HDRI.", None, None, False)
 
         lbl_type = Label(self.frame_hdris, bd=1, text='Contrast', padx=4,
                          bg=self.col_wdw_default, fg=self.col_bt_fg_default)

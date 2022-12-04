@@ -47,6 +47,10 @@ class PackageManagerTxt:
         self.ui_child.deiconify()
         self.ui_proxy.iconify()
 
+    def switch_subchannel(self, subchannel, dd_subchannel, key):
+        dd_subchannel.configure(text=subchannel)
+        self.dict_subchannels[key] = subchannel
+
     def switch_connection(self, channel, dd_connection, key, external_channels):
         text = channel.split('.')[0]
         if channel in external_channels:
@@ -77,14 +81,16 @@ class PackageManagerTxt:
 
         row = 2
 
-        with open(file_package_txt, 'r') as config_file:
-            config_content = json.load(config_file)
+        #with open(file_package_txt, 'r') as config_file:
+        #    config_content = json.load(config_file)
+        config_content = self.load_convert_connections(file_package_txt)
 
-        self.dict_connections = config_content
+        self.dict_connections = config_content["channels"]
+        self.dict_subchannels = config_content["subchannels"]
         self.connections = []
         self.connection_ui_elements = []
 
-        for i, key in enumerate(config_content):
+        for i, key in enumerate(config_content['channels']):
             # --- Label Connection ------------------------------------------------------------------------
             row = i + 2
             text = key.replace('_', ' ').capitalize()
@@ -100,8 +106,8 @@ class PackageManagerTxt:
                                    if os.path.isdir(os.path.join(dir_txt_package, x.split('.')[0]))]
             channels_json_external = [x for x in channels_json if x not in channels_json_local]
 
-            current_channel = config_content[key]
-            dd_channel = Menubutton(self.frame_main, text=current_channel,
+            current_channel = config_content['channels'][key]
+            dd_channel = Menubutton(self.frame_main, text=current_channel, width=14,
                                     bg=self.col_bt_bg_blue, fg=self.col_bt_fg_default,
                                     highlightthickness=0, activebackground=self.col_bt_bg_blue_highlight,
                                     anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
@@ -123,10 +129,46 @@ class PackageManagerTxt:
             dd_channel.grid(row=row, column=1, sticky=EW, padx=self.default_padding,
                             pady=self.default_padding)
 
+            # Sub-Channel Selection
+            current_subchannel = config_content['subchannels'][key]
+            if text == 'Normal':
+                if len(current_subchannel) == 3:
+                    current_subchannel = 'OpenGL'
+                clr = self.col_bt_bg_blue
+                hi = self.col_bt_bg_blue_highlight
+            else:
+                clr = self.col_bt_petrol
+                hi = self.col_bt_petrol_highlight
+            dd_subchannel = Menubutton(self.frame_main, text=current_subchannel,
+                                       bg=clr, fg=self.col_bt_fg_default, width=8,
+                                       highlightthickness=0, activebackground=hi,
+                                       anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                       relief=self.def_bt_relief, justify=RIGHT)
+            dd_subchannel.menu = Menu(dd_subchannel, tearoff=0, bd=0, activeborderwidth=3,
+                                      relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                      activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                      activebackground=self.col_bt_bg_blue_highlight)
+            dd_subchannel['menu'] = dd_subchannel.menu
+
+            if text == 'Normal':
+                for x in ['OpenGL', "DirectX"]:
+                    dd_subchannel.menu.add_command(label=x.split('.')[0],
+                                                   command=lambda x=x, y=dd_subchannel, z=key:
+                                                   self.switch_subchannel(x, y, z))
+            else:
+                for x in ['RGB', 'R', 'G', 'B', 'A']:
+                    dd_subchannel.menu.add_command(label=x.split('.')[0],
+                                                   command=lambda x=x, y=dd_subchannel, z=key:
+                                                   self.switch_subchannel(x, y, z))
+
+            dd_subchannel.grid(row=row, column=2, sticky=EW, padx=self.default_padding,
+                               pady=self.default_padding)
+            #dd_subchannel.configure(state=DISABLED, bg=self.col_wdw_default)
+
             self.connections = []
             self.switch_connection(f'{current_channel}.json', dd_channel, key,
                                    channels_json_external)
-            self.connection_ui_elements.append([lbl_key, dd_channel])
+            self.connection_ui_elements.append([lbl_key, dd_channel, dd_subchannel])
 
         return row
 
@@ -134,11 +176,47 @@ class PackageManagerTxt:
         dir_variation = os.path.join(self.dir_pipeline_txt, self.current_variation)
         file_package_txt = os.path.join(dir_variation, 'txt_connections.json')
 
+        dict_out = {
+            "channels": self.dict_connections,
+            "subchannels": self.dict_subchannels
+        }
+
         with open(file_package_txt, 'w') as json_output:
-            json.dump(self.dict_connections, json_output, indent=2)
+            json.dump(dict_out, json_output, indent=2)
 
         message = "Successfully updated default texture connections."
         messagebox.showinfo(title='', message=message)
+
+        if len(self.variations) == 1:
+            close_sub_ui(self.ui_child)
+            close_sub_ui(self.ui_proxy)
+
+    def load_convert_connections(self, file_package_txt):
+        # Load current config
+        with open(file_package_txt, 'r') as config_file:
+            channels = json.load(config_file)
+
+        if len(channels.keys()) != 2:
+            subchannels = {}
+            with open(r'.\config\config_release_tool_txt.json', 'r') as json_file:
+                json_content = json.load(json_file)
+                subchannels = json_content["connections"]["subchannels"]
+
+            dict_new = {
+                "channels": channels,
+                "subchannels": subchannels
+            }
+            with open(file_package_txt, 'w') as config_file:
+                json.dump(dict_new, config_file, indent=2)
+            return dict_new
+        else:
+            return channels
+
+    def on_bt_enter(self, e):
+        e.widget['background'] = self.col_bt_bg_green_highlight
+
+    def on_bt_leave(self, e):
+        e.widget['background'] = self.col_bt_bg_green
 
     def create_ui_package_manager_txt(self):
         self.variations = [x for x in os.listdir(os.path.join(self.dir_pipeline_txt))
@@ -186,13 +264,13 @@ class PackageManagerTxt:
                     self.dd_variation.menu.add_command(label=variation,
                                                        command=lambda x=variation: self.switch_variation(x))
 
-                self.dd_variation.grid(row=0, column=1, sticky=EW, padx=self.default_padding,
+                self.dd_variation.grid(row=0, column=1, columnspan=2, sticky=EW, padx=self.default_padding,
                                        pady=self.default_padding)
                 # ---------------------------------------------------------------------------------------------
 
                 # --- Separator -------------------------------------------------------------------------------
                 frame_separator = Frame(self.frame_main, bg="gray60", height=1)
-                frame_separator.grid(row=1, column=0, columnspan=2, sticky=NSEW, padx=self.default_padding, pady=3)
+                frame_separator.grid(row=1, column=0, columnspan=3, sticky=NSEW, padx=self.default_padding, pady=3)
                 # ---------------------------------------------------------------------------------------------
 
                 # ---- Channel connections --------------------------------------------------------------------
@@ -201,7 +279,7 @@ class PackageManagerTxt:
 
                 # --- Separator -------------------------------------------------------------------------------
                 frame_separator2 = Frame(self.frame_main, bg="gray60", height=1)
-                frame_separator2.grid(row=last_row + 1, column=0, columnspan=2, sticky=NSEW,
+                frame_separator2.grid(row=last_row + 1, column=0, columnspan=3, sticky=NSEW,
                                       padx=self.default_padding, pady=3)
                 # ---------------------------------------------------------------------------------------------
 
@@ -211,8 +289,10 @@ class PackageManagerTxt:
                                  bg=self.col_bt_bg_green, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
                                  activebackground=self.col_bt_bg_active,
                                  command=lambda: self.save_texture_connections())
-                bt_save.grid(row=last_row + 2, column=0, columnspan=2, sticky=NSEW, padx=self.default_padding,
+                bt_save.grid(row=last_row + 2, column=0, columnspan=3, sticky=NSEW, padx=self.default_padding,
                              pady=self.default_padding)
+                bt_save.bind('<Enter>', self.on_bt_enter)
+                bt_save.bind('<Leave>', self.on_bt_leave)
                 # ---------------------------------------------------------------------------------------------
                 ui_package_manager_txt.geometry('+420+100')
                 ui_package_manager_txt.geometry('')

@@ -20,6 +20,9 @@ class Publish:
             self.current_discipline = self.current_department = self.parent = self.list_updates_pull = \
             self.frame_main = self.dir_asset = self.bt_publish = self.lbl_update_publish = None
 
+        self.publish_method = 0
+        self.publish_variables = []
+
         json_load_ui_variables(self, r'.\ui\defaults_ui.json')
 
     def move_window_offset(self, event):
@@ -75,12 +78,14 @@ class Publish:
         else:
             # Current model is already published
             if mdl == mdl_publish:
-                text_publish = f'MDL\n\n{mdl} is already published.'
+                text_publish = f'MDL\n\n{mdl} has already been pushed.'
             # If model needs to be published
             else:
                 text_publish = f'MDL\n{mdl_publish}    ▶    {mdl}'
                 self.bt_publish.configure(state=NORMAL, command=lambda x=file_mdl_package, y=dict_json_content,
                                           z=mdl, v=dir_pipe_mdl: self.execute_publish_mdl(x, y, z, v))
+        self.publish_method = 1
+        self.publish_variables = [file_mdl_package, dict_json_content, mdl, dir_pipe_mdl]
 
         self.lbl_update_publish.configure(text=text_publish)
 
@@ -111,10 +116,16 @@ class Publish:
 
         self.parent.check_for_outdated_packages()
 
-        messagebox.showinfo(title='Info', message=f'{self.parent.current_asset} model {mdl} has been published')
+        messagebox.showinfo(title='Info', message=f'{self.parent.current_asset} model {mdl} has been pushed')
 
         close_sub_ui(self.ui_child)
         close_sub_ui(self.ui_proxy)
+
+    def on_bt_enter(self, e):
+        e.widget['background'] = self.col_bt_bg_blue_highlight
+
+    def on_bt_leave(self, e):
+        e.widget['background'] = self.col_bt_bg_blue
 
     def ui_draw_labels_txt(self):
         """ Modifies label to show the changes to be made and updates the publish button to use the correct command.
@@ -126,7 +137,7 @@ class Publish:
         list_updates = publish_required_txt(self.parent)
         if len(list_updates) == 0:
             pass
-            text_publish = f'TXT\nNo updates to publish.'
+            text_publish = f'TXT\nNo updates to push.'
             # no update to be found
         else:
             updates = []
@@ -150,6 +161,9 @@ class Publish:
             text_publish = 'TXT\n' + updates_text
 
             self.bt_publish.configure(text='Confirm', state=NORMAL, command=lambda: self.execute_publish_txt(variables))
+
+            self.publish_method = 2
+            self.publish_variables = variables
 
         self.lbl_update_publish.configure(text=text_publish)
 
@@ -229,6 +243,9 @@ class Publish:
 
             self.bt_publish.configure(text='Confirm', state=NORMAL, command=lambda: self.execute_publish_shd(variables))
 
+            self.publish_method = 3
+            self.publish_variables = variables
+
         self.lbl_update_publish.configure(text=text_publish)
 
     def execute_publish_shd(self, list_variables):
@@ -278,6 +295,17 @@ class Publish:
         close_sub_ui(self.ui_child)
         close_sub_ui(self.ui_proxy)
 
+    def press_enter(self, _):
+        if self.publish_method == 0:
+            self.close()
+        elif self.publish_method == 1:
+            self.execute_publish_mdl(self.publish_variables[0], self.publish_variables[1],
+                                     self.publish_variables[2], self.publish_variables[3])
+        elif self.publish_method == 2:
+            self.execute_publish_txt(self.publish_variables)
+        elif self.publish_method == 3:
+            self.execute_publish_shd(self.publish_variables)
+
     def create_ui_publish(self, parent):
         """ Sets up the UI of this script. This is the function executed by the main parent class.
 
@@ -292,17 +320,19 @@ class Publish:
         dimensions = '662x103+420+100'
 
         self.ui_proxy = Tk()
-        ui_pull_publish = Toplevel()
-        ui_pull_publish.lift()
-        ui_pull_publish.attributes("-alpha", 0.0)
-        ui_pull_publish.iconbitmap(r'.\ui\icon_pipe.ico')
-        ui_pull_publish.title('Pull & Push')
-        ui_pull_publish.geometry(dimensions)
-        ui_title_bar(self, self.ui_proxy, ui_pull_publish, 'Push',
+        ui_publish = Toplevel()
+        ui_publish.bind('<Return>', self.press_enter)
+        ui_publish.focus_force()
+        ui_publish.lift()
+        ui_publish.attributes("-alpha", 0.0)
+        ui_publish.iconbitmap(r'.\ui\icon_pipe.ico')
+        ui_publish.title('Push')
+        ui_publish.geometry(dimensions)
+        ui_title_bar(self, self.ui_proxy, ui_publish, 'Push',
                      r'.\ui\icon_pipe_white_PNG_s.png', self.col_wdw_title)
-        ui_pull_publish.configure(bg=self.col_wdw_default)
+        ui_publish.configure(bg=self.col_wdw_default)
 
-        self.frame_main = Frame(ui_pull_publish, bg=self.col_wdw_default)
+        self.frame_main = Frame(ui_publish, bg=self.col_wdw_default)
         self.frame_main.pack(side=TOP, anchor=N, fill=X, padx=self.default_padding, pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
         self.lbl_update_publish = Label(self.frame_main, bd=1, text='', anchor=W, justify=LEFT, padx=4, pady=4,
@@ -316,6 +346,9 @@ class Publish:
                                  bd=self.default_bt_bd, relief=self.def_bt_relief, command=lambda: self.close())
         self.bt_publish.grid(row=1, column=0, columnspan=1, sticky=NSEW, padx=self.default_padding,
                              pady=self.default_padding)
+
+        self.bt_publish.bind('<Enter>', self.on_bt_enter)
+        self.bt_publish.bind('<Leave>', self.on_bt_leave)
         # ---------------------------------------------------------------------------------------------
         if parent.current_discipline == 'mdl':
             self.ui_draw_labels_mdl()
@@ -325,8 +358,8 @@ class Publish:
             self.ui_draw_labels_shd()
 
         # ---------------------------------------------------------------------------------------------
-        ui_pull_publish.geometry('')
+        ui_publish.geometry('')
 
-        ui_pull_publish.attributes("-alpha", 1.0)
-        ui_pull_publish.wm_attributes("-topmost", 1)
-        ui_pull_publish.mainloop()
+        ui_publish.attributes("-alpha", 1.0)
+        ui_publish.wm_attributes("-topmost", 1)
+        ui_publish.mainloop()

@@ -49,8 +49,8 @@ class Pull:
             self.dict_mdl = self.list_updates_pull["mdl"]["dict"]
             version_cur = self.list_updates_pull["mdl"]["version_cur"]
             self.mdl_version_pub = self.list_updates_pull["mdl"]["version_pub"]
-            text_pull = text_pull + 'MDL \n' \
-                                    f'  - {version_cur}    ▶    {self.mdl_version_pub}'
+            text_pull = \
+                text_pull + 'MDL \n' + f'  - {version_cur}    ▶    {self.mdl_version_pub}'
 
         # ---- ANM -----------------------------------------------------------------------------
         anm_updates = []
@@ -120,22 +120,31 @@ class Pull:
                 text_pull = text_pull + '\n\n'
             text_pull = text_pull + 'SHD' + updates_text
 
+        # ---- TEXT  --------------------------------------------------------------------------
+        if len(text_pull) != 0:
+            text = 'Confirm'
+        else:
+            text = 'Close'
+            text_pull = f'{self.parent.current_discipline.upper()}\nNo updates to pull for this stream.'
+
         # ---- LABEL --------------------------------------------------------------------------
         lbl_update_pull = Label(self.frame_main, bd=1, text=text_pull, anchor=W, justify=LEFT, padx=4, pady=4,
                                 bg=self.col_wdw_title, fg=self.col_bt_fg_default, relief='solid')
         lbl_update_pull.grid(row=0, column=0, sticky=NSEW, padx=self.default_padding,
                              pady=self.default_padding)
         # ---- BUTTON --------------------------------------------------------------------------
-        text = 'Confirm' if len(text_pull) != 0 else 'Close'
         bt_pull = Button(self.frame_main, text=text, height=2, bg=self.col_bt_bg_blue,
                          fg=self.col_bt_fg_default, activebackground=self.col_bt_bg_blue_active,
                          activeforeground=self.col_bt_fg_default, highlightthickness=0,
                          bd=self.default_bt_bd, relief=self.def_bt_relief, width=33,
-                         command=lambda: self.execute_pull())
+                         command=lambda: self.execute_pull(''))
         bt_pull.grid(row=1, column=0, columnspan=1, sticky=NSEW, padx=self.default_padding,
                      pady=self.default_padding)
 
-    def execute_pull(self):
+        bt_pull.bind('<Enter>', self.on_bt_enter)
+        bt_pull.bind('<Leave>', self.on_bt_leave)
+
+    def execute_pull(self, _):
         update_required = False
 
         # anm update:
@@ -190,29 +199,39 @@ class Pull:
         close_sub_ui(self.ui_child)
         close_sub_ui(self.ui_proxy)
 
+    def on_bt_enter(self, e):
+        e.widget['background'] = self.col_bt_bg_blue_highlight
+
+    def on_bt_leave(self, e):
+        e.widget['background'] = self.col_bt_bg_blue
+
     def create_ui_pull(self, parent):
         self.parent = parent
 
         dimensions = '662x103+420+100'
 
         self.ui_proxy = Tk()
-        ui_pull_publish = Toplevel()
-        ui_pull_publish.lift()
-        ui_pull_publish.attributes("-alpha", 0.0)
-        ui_pull_publish.iconbitmap(r'.\ui\icon_pipe.ico')
-        ui_pull_publish.title('Pull & Publish')
-        ui_pull_publish.geometry(dimensions)
-        ui_title_bar(self, self.ui_proxy, ui_pull_publish, 'Pull',
+        ui_pull = Toplevel()
+        ui_pull.bind('<Return>', self.execute_pull)
+        ui_pull.focus_force()
+        ui_pull.lift()
+        ui_pull.attributes("-alpha", 0.0)
+        ui_pull.iconbitmap(r'.\ui\icon_pipe.ico')
+        ui_pull.title('Pull')
+        ui_pull.geometry(dimensions)
+        ui_title_bar(self, self.ui_proxy, ui_pull, 'Pull',
                      r'.\ui\icon_pipe_white_PNG_s.png', self.col_wdw_title)
-        ui_pull_publish.configure(bg=self.col_wdw_default)
+        ui_pull.configure(bg=self.col_wdw_default)
 
-        self.frame_main = Frame(ui_pull_publish, bg=self.col_wdw_default)
+        self.frame_main = Frame(ui_pull, bg=self.col_wdw_default)
         self.frame_main.pack(side=TOP, anchor=N, fill=X, padx=self.default_padding, pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
         self.ui_draw_labels()
         # ---------------------------------------------------------------------------------------------
-        ui_pull_publish.geometry('')
+        ui_pull.geometry('')
 
-        ui_pull_publish.attributes("-alpha", 1.0)
-        ui_pull_publish.wm_attributes("-topmost", 1)
-        ui_pull_publish.mainloop()
+        ui_pull.attributes("-alpha", 1.0)
+        ui_pull.wm_attributes("-topmost", 1)
+        ui_pull.mainloop()
+
+

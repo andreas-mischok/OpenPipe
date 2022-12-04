@@ -38,15 +38,31 @@ def json_load_ui_variables(parent, config):
         parent.col_bt_bg_default = '#3d3d3d'
 
     try:
+        parent.col_bt_bg_default_highlight = config_file_content["col_bt_bg_default_highlight"]
+    except KeyError:
+        parent.col_bt_bg_default_highlight = '#4d4d4d'
+
+    try:
         parent.col_dd_blue_default = config_file_content["col_dd_blue_default"]
-        parent.col_bt_bg_blue = config_file_content["col_bt_bg_blue"]
-        parent.col_bt_bg_blue_active = config_file_content["col_bt_bg_blue_active"]
-        parent.col_bt_bg_blue_highlight = config_file_content["col_bt_bg_blue_highlight"]
     except KeyError:
         parent.col_bt_bg_blue = '#434359'
+
+    try:
+        parent.col_bt_bg_blue = config_file_content["col_bt_bg_blue"]
+    except KeyError:
         parent.col_dd_blue_default = "#3e4959"
+
+    try:
+        parent.col_bt_bg_blue_active = config_file_content["col_bt_bg_blue_active"]
+    except KeyError:
         parent.col_bt_bg_blue_active = "#525265"
+
+    try:
+        parent.col_bt_bg_blue_highlight = config_file_content["col_bt_bg_blue_highlight"]
+    except KeyError:
         parent.col_bt_bg_blue_highlight = "#484859"
+        # 484859
+        # 9484859
 
     try:
         parent.col_bt_bg_green = config_file_content["col_bt_bg_green"]
@@ -209,21 +225,24 @@ def pick_ocio(text_var):
 
 
 def close_sub_ui(ui):
-    ui.quit()
-    ui.destroy()
+    try:
+        ui.quit()
+        ui.destroy()
+    except TclError:
+        pass
 
 
 def generate_paths(parent):
     parent.dir_asset = os.path.join(parent.current_root, parent.current_project_name, 'build', parent.current_asset)
     if os.path.isdir(parent.dir_asset):
-        #dir_export_txt previously known as dir_export
+        # dir_export_txt previously known as dir_export
         parent.dir_export_txt = os.path.join(parent.dir_asset, 'txt', '_export')
         parent.dir_export_anm = os.path.join(parent.dir_asset, 'anm', '_export')
         parent.dir_pantry_mdl = os.path.join(parent.dir_asset, 'mdl', '.pantry')
         parent.dir_pantry_txt = os.path.join(parent.dir_asset, 'txt', '.pantry')
         parent.dir_pantry_shd = os.path.join(parent.dir_asset, 'shd', '.pantry')
         parent.dir_pantry_anm = os.path.join(parent.dir_asset, 'anm', '.pantry')
-        #parent.dir_pantry= os.path.join(parent.dir_asset, 'txt', '.pantry')
+        # parent.dir_pantry= os.path.join(parent.dir_asset, 'txt', '.pantry')
         parent.dir_pipeline = os.path.join(parent.dir_asset, '.pipeline')
         parent.dir_pipeline_mdl = os.path.join(parent.dir_pipeline, 'mdl')
         parent.dir_pipeline_txt = os.path.join(parent.dir_pipeline, 'txt')
@@ -335,102 +354,103 @@ def pull_required(parent):
     }
     if parent.dir_pipeline_txt is not None:
     #if os.path.isdir(parent.dir_pipeline_txt):
-        if parent.current_discipline != 'mdl':
-            dir_pipe_mdl = os.path.join(parent.dir_asset, '.pipeline', 'mdl')
-            file_mdl_package = os.path.join(dir_pipe_mdl, 'mdl_package.json')
+        if parent.current_department == 'build':
+            if parent.current_discipline != 'mdl':
+                dir_pipe_mdl = os.path.join(parent.dir_asset, '.pipeline', 'mdl')
+                file_mdl_package = os.path.join(dir_pipe_mdl, 'mdl_package.json')
 
-            if os.path.isfile(file_mdl_package):
-                with open(file_mdl_package, 'r') as json_file:
-                    dict_content_mdl_package = json.load(json_file)
-                try:
-                    current_version = dict_content_mdl_package[parent.current_discipline]
-                except KeyError:
-                    with open(file_mdl_package, 'w') as json_output:
-                        dict_content_mdl_package[parent.current_discipline] = ""
-                        json.dump(dict_content_mdl_package, json_output, indent=2)
-                        #dict_content_mdl_package = json.load(json_file)
-                    current_version = ''
+                if os.path.isfile(file_mdl_package):
+                    with open(file_mdl_package, 'r') as json_file:
+                        dict_content_mdl_package = json.load(json_file)
+                    try:
+                        current_version = dict_content_mdl_package[parent.current_discipline]
+                    except KeyError:
+                        with open(file_mdl_package, 'w') as json_output:
+                            dict_content_mdl_package[parent.current_discipline] = ""
+                            json.dump(dict_content_mdl_package, json_output, indent=2)
+                            #dict_content_mdl_package = json.load(json_file)
+                        current_version = ''
 
-                mdl_publish = dict_content_mdl_package["mdl_publish"]
+                    mdl_publish = dict_content_mdl_package["mdl_publish"]
 
-                if len(mdl_publish) != 0:
-                    if current_version != mdl_publish:
-                        # text_pull = text_pull + ''
-                        list_updates["mdl"] = {
-                            "file": file_mdl_package,
-                            "dict": dict_content_mdl_package,
-                            "version_cur": current_version,
-                            "version_pub": mdl_publish
-                        }
+                    if len(mdl_publish) != 0:
+                        if current_version != mdl_publish:
+                            # text_pull = text_pull + ''
+                            list_updates["mdl"] = {
+                                "file": file_mdl_package,
+                                "dict": dict_content_mdl_package,
+                                "version_cur": current_version,
+                                "version_pub": mdl_publish
+                            }
 
-        if parent.current_discipline != 'anm':
-            anms_directories = [x for x in os.listdir(parent.dir_pipeline_anm)]
-            for anm in anms_directories:
-                file_anm_package = os.path.join(parent.dir_pipeline_anm, anm, f'{anm}.json')
+            if parent.current_discipline != 'anm':
+                anms_directories = [x for x in os.listdir(parent.dir_pipeline_anm)]
+                for anm in anms_directories:
+                    file_anm_package = os.path.join(parent.dir_pipeline_anm, anm, f'{anm}.json')
 
-                if os.path.isfile(file_anm_package):
-                    with open(file_anm_package, 'r') as json_file:
-                        dict_content_anm_package = json.load(json_file)
-                try:
-                    current_version = dict_content_anm_package[parent.current_discipline]
-                except KeyError:
-                    with open(file_anm_package, 'w') as json_output:
-                        dict_content_anm_package[parent.current_discipline] = ""
-                        json.dump(dict_content_anm_package, json_output, indent=2)
-                    current_version = ''
+                    if os.path.isfile(file_anm_package):
+                        with open(file_anm_package, 'r') as json_file:
+                            dict_content_anm_package = json.load(json_file)
+                    try:
+                        current_version = dict_content_anm_package[parent.current_discipline]
+                    except KeyError:
+                        with open(file_anm_package, 'w') as json_output:
+                            dict_content_anm_package[parent.current_discipline] = ""
+                            json.dump(dict_content_anm_package, json_output, indent=2)
+                        current_version = ''
 
-                anm_publish = dict_content_anm_package["anm_publish"]
+                    anm_publish = dict_content_anm_package["anm_publish"]
 
-                if len(anm_publish) != 0:
-                    if current_version != anm_publish:
-                        list_updates["anm"].append(file_anm_package)
+                    if len(anm_publish) != 0:
+                        if current_version != anm_publish:
+                            list_updates["anm"].append(file_anm_package)
 
-        txt_variation_directories = [x for x in os.listdir(parent.dir_pipeline_txt)]
-        if parent.current_discipline != 'txt':
-            for dir_variation in txt_variation_directories:
-                dir_txt_package = os.path.join(parent.dir_pipeline_txt, dir_variation, 'txt_package')
-                channels_json, channels_json_native, channels_json_external = txt_package_list_channels(dir_txt_package)
+            txt_variation_directories = [x for x in os.listdir(parent.dir_pipeline_txt)]
+            if parent.current_discipline != 'txt':
+                for dir_variation in txt_variation_directories:
+                    dir_txt_package = os.path.join(parent.dir_pipeline_txt, dir_variation, 'txt_package')
+                    channels_json, channels_json_native, channels_json_external = txt_package_list_channels(dir_txt_package)
 
-                if channels_json is not None:
-                    for channel_json in channels_json_native:
-                        file_txt_package = os.path.join(dir_txt_package, channel_json)
+                    if channels_json is not None:
+                        for channel_json in channels_json_native:
+                            file_txt_package = os.path.join(dir_txt_package, channel_json)
 
-                        with open(file_txt_package, 'r') as json_file:
-                            dict_channel_file_content = json.load(json_file)
-                        published = dict_channel_file_content['txt_publish']
-                        try:
-                            used = dict_channel_file_content[parent.current_discipline]
+                            with open(file_txt_package, 'r') as json_file:
+                                dict_channel_file_content = json.load(json_file)
+                            published = dict_channel_file_content['txt_publish']
+                            try:
+                                used = dict_channel_file_content[parent.current_discipline]
 
-                        except KeyError:
-                            with open(file_txt_package, 'w') as json_output:
-                                dict_channel_file_content[parent.current_discipline] = ""
-                                json.dump(dict_channel_file_content, json_output, indent=2)
-                                # dict_content_mdl_package = json.load(json_file)
-                            used = ''
+                            except KeyError:
+                                with open(file_txt_package, 'w') as json_output:
+                                    dict_channel_file_content[parent.current_discipline] = ""
+                                    json.dump(dict_channel_file_content, json_output, indent=2)
+                                    # dict_content_mdl_package = json.load(json_file)
+                                used = ''
 
-                        if used != published:
-                            list_updates["txt"].append(file_txt_package)
+                            if used != published:
+                                list_updates["txt"].append(file_txt_package)
 
-        shd_variation_directories = [x for x in os.listdir(parent.dir_pipeline_shd)]
-        if parent.current_discipline != 'shd':
-            for dir_variation in shd_variation_directories:
-                file_shd_package = os.path.join(parent.dir_pipeline_shd, dir_variation, 'shd_package.json')
+            shd_variation_directories = [x for x in os.listdir(parent.dir_pipeline_shd)]
+            if parent.current_discipline != 'shd':
+                for dir_variation in shd_variation_directories:
+                    file_shd_package = os.path.join(parent.dir_pipeline_shd, dir_variation, 'shd_package.json')
 
-                with open(file_shd_package, 'r') as json_file:
-                    dict_variation_content = json.load(json_file)
+                    with open(file_shd_package, 'r') as json_file:
+                        dict_variation_content = json.load(json_file)
 
-                published = dict_variation_content['shd_publish']
-                try:
-                    used = dict_variation_content[parent.current_discipline]
-                except KeyError:
-                    with open(file_shd_package, 'w') as json_output:
-                        dict_variation_content[parent.current_discipline] = ""
-                        json.dump(dict_variation_content, json_output, indent=2)
-                        # dict_content_mdl_package = json.load(json_file)
-                    used = ''
+                    published = dict_variation_content['shd_publish']
+                    try:
+                        used = dict_variation_content[parent.current_discipline]
+                    except KeyError:
+                        with open(file_shd_package, 'w') as json_output:
+                            dict_variation_content[parent.current_discipline] = ""
+                            json.dump(dict_variation_content, json_output, indent=2)
+                            # dict_content_mdl_package = json.load(json_file)
+                        used = ''
 
-                if used != published:
-                    list_updates["shd"].append(file_shd_package)
+                    if used != published:
+                        list_updates["shd"].append(file_shd_package)
 
     return list_updates
 
@@ -509,11 +529,14 @@ def ui_title_bar(parent, proxy, ui, title, img_path, color):
 class CreateToolTip(object):
     """ create a tooltip for a given widget
     """
-    def __init__(self, widget, text='widget info'):
+    def __init__(self, widget, text='widget info', clr_over='#200000', clr_off='#300000', change_colors=True):
         self.wait_time = 500     # miliseconds
         self.wrap_length = 180   # pixels
         self.widget = widget
         self.text = text
+        self.clr_over = clr_over
+        self.clr_off = clr_off
+        self.change_colors = change_colors
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
         self.widget.bind("<ButtonPress>", self.leave)
@@ -521,9 +544,13 @@ class CreateToolTip(object):
         self.tw = None
 
     def enter(self, event=None):
+        if self.change_colors and self.widget["state"] == NORMAL:
+            self.widget.configure(bg=self.clr_over)
         self.schedule()
 
     def leave(self, event=None):
+        if self.change_colors and self.widget["state"] in [NORMAL, ACTIVE]:
+            self.widget.configure(bg=self.clr_off)
         self.unschedule()
         self.hidetip()
 
@@ -566,7 +593,8 @@ class CreateToolTip(object):
 
 
 class AssetCreator:
-    def __init__(self):
+    def __init__(self, edit_mode):
+        self.edit_mode = edit_mode
         self.col_wdw_default = self.col_bt_fg_default = self.col_bt_bg_active = self.col_bt_bg_green = \
             self.default_padding = self.col_i_bg_default = self.def_bt_relief = self.default_bt_bd = \
             self.col_bt_bg_blue = self.col_bt_bg_blue_highlight = self.col_bt_bg_default = \
@@ -577,6 +605,65 @@ class AssetCreator:
         self.asset_creator_ui = self.tkvar_name = self.dd_type = self.current_type = self.directory_build = None
 
         json_load_ui_variables(self, r'.\ui\defaults_ui.json')
+
+    def crawl_gather(self, dir_root, old_name, l_files, l_dirs):
+        sub_all = os.listdir(dir_root)
+
+        for sub in sub_all:
+            pth = os.path.join(dir_root, sub)
+            if os.path.isdir(pth):
+                l_files_sub, l_dirs_sub = self.crawl_gather(pth, old_name, [], [])
+                l_files += l_files_sub
+                l_dirs += l_dirs_sub
+
+        for sub in sub_all:
+            pth = os.path.join(dir_root, sub)
+            if os.path.isfile(pth):
+                if old_name in sub:
+                    l_files.append(pth)
+            if os.path.isdir(pth):
+                if old_name in sub:
+                    if pth not in l_dirs:
+                        l_dirs.append(pth)
+
+        if old_name in os.path.split(dir_root)[1]:
+            if dir_root not in l_dirs:
+                l_dirs.append(dir_root)
+
+        return l_files, l_dirs
+
+    def crawl_rename(self, dir_root, old_name, new_name):
+        """Crawls through given directory to rename all files and sub-directories, containing given phrase.
+
+        :param dir_root: Given directory to be checked.
+        :param old_name: Name to be checked for and replaced.
+        :param new_name: Target name.
+
+        :return: True when rename was successful.
+        """
+
+        l_files, l_dirs = self.crawl_gather(dir_root, old_name, [], [])
+        try:
+            if l_files:
+                for fl_old in l_files:
+                    fl_dir, fl_name = os.path.split(fl_old)
+                    fl_new = os.path.join(fl_dir, fl_name.replace(old_name, new_name))
+                    # print(fl_old, fl_new)
+                    os.rename(fl_old, fl_new)
+            if l_dirs:
+                l_dirs.sort(key=lambda x: x.count(os.sep), reverse=True)
+                for dir_old in l_dirs:
+                    dir_root, dir_name = os.path.split(dir_old)
+                    dir_new = os.path.join(dir_root, dir_name.replace(old_name, new_name))
+                    os.rename(dir_old, dir_new)
+            return True
+        except:
+            for fl_old in l_files:
+                fl_dir, fl_name = os.path.split(fl_old)
+                fl_new = os.path.join(fl_dir, fl_name.replace(old_name, new_name))
+                if os.path.isfile(fl_new):
+                    os.rename(fl_new, fl_old)
+            return False
 
     def save(self):
         asset_type = self.current_type
@@ -593,156 +680,199 @@ class AssetCreator:
                 prefix = 'chr'
 
             asset_name_full = prefix + (asset_name[0].upper() + asset_name[1:]).replace(' ', '_')
-            dir_asset = os.path.join(self.directory_build, asset_name_full)
-            directories = [dir_asset]
 
-            if os.path.isdir(dir_asset) is False:
-                # create model directory
-                dir_mdl = os.path.join(dir_asset, 'mdl')
-                directories.append(dir_mdl)
-                dir_mdl_pantry = os.path.join(dir_mdl, '.pantry')
-                directories.append(dir_mdl_pantry)
-                dir_mdl_export = os.path.join(dir_mdl, '_export')
-                directories.append(dir_mdl_export)
-                dir_mdl_variation = os.path.join(dir_mdl_export, 'A')
-                directories.append(dir_mdl_variation)
-                dir_mdl_files = os.path.join(dir_mdl, 'files')
-                directories.append(dir_mdl_files)
-                dir_mdl_files_zbrush = os.path.join(dir_mdl_files, 'zbrush')
-                directories.append(dir_mdl_files_zbrush)
-                dir_mdl_files_blender = os.path.join(dir_mdl_files, 'blender')
-                directories.append(dir_mdl_files_blender)
-                dir_mdl_files_maya = os.path.join(dir_mdl_files, 'maya')
-                directories.append(dir_mdl_files_maya)
-                dir_mdl_geo = os.path.join(dir_mdl, 'geo')
-                directories.append(dir_mdl_geo)
-                dir_mdl_geo_blender = os.path.join(dir_mdl_geo, 'blender_out')
-                directories.append(dir_mdl_geo_blender)
-                dir_mdl_geo_maya = os.path.join(dir_mdl_geo, 'maya_out')
-                directories.append(dir_mdl_geo_maya)
-                dir_mdl_geo_zbrush = os.path.join(dir_mdl_geo, 'zbrush_out')
-                directories.append(dir_mdl_geo_zbrush)
-                dir_mdl_misc = os.path.join(dir_mdl, 'misc')
-                directories.append(dir_mdl_misc)
-                dir_mdl_ref = os.path.join(dir_mdl, 'ref')
-                directories.append(dir_mdl_ref)
+            if self.edit_mode:  # edit
+                old_asset_name = self.parent.current_asset
+                if old_asset_name != asset_name_full:
+                    dir_asset = os.path.join(self.directory_build, old_asset_name)
+                    rename_success = self.crawl_rename(dir_asset, old_asset_name, asset_name_full)
 
-                # create texture directory
-                dir_txt = os.path.join(dir_asset, 'txt')
-                directories.append(dir_txt)
-                dir_txt_export = os.path.join(dir_txt, '_export')
-                directories.append(dir_txt_export)
-                dir_txt_export_a = os.path.join(dir_txt_export, 'A')
-                directories.append(dir_txt_export_a)
-                dir_txt_pantry = os.path.join(dir_txt, '.pantry')
-                directories.append(dir_txt_pantry)
-                dir_txt_renders = os.path.join(dir_txt, 'renders')
-                directories.append(dir_txt_renders)
-                dir_txt_renders_turntables = os.path.join(dir_txt_renders, 'turntables')
-                directories.append(dir_txt_renders_turntables)
-                dir_txt_files = os.path.join(dir_txt, 'files')
-                directories.append(dir_txt_files)
-                dir_txt_files_blender = os.path.join(dir_txt_files, 'blender')
-                directories.append(dir_txt_files_blender)
-                dir_txt_files_mari = os.path.join(dir_txt_files, 'mari')
-                directories.append(dir_txt_files_mari)
-                dir_txt_files_substance_painter = os.path.join(dir_txt_files, 'substance_painter')
-                directories.append(dir_txt_files_substance_painter)
-                dir_txt_files_zbrush = os.path.join(dir_txt_files, 'zbrush')
-                directories.append(dir_txt_files_zbrush)
-                dir_txt_geo = os.path.join(dir_txt, 'geo')
-                directories.append(dir_txt_geo)
-                dir_txt_geo_blender = os.path.join(dir_txt_geo, 'blender_out')
-                directories.append(dir_txt_geo_blender)
-                dir_txt_geo_zbrush = os.path.join(dir_txt_geo, 'zbrush_out')
-                directories.append(dir_txt_geo_zbrush)
-                dir_txt_geo_maya = os.path.join(dir_txt_geo, 'maya_out')
-                directories.append(dir_txt_geo_maya)
-                dir_txt_ref = os.path.join(dir_txt, 'ref')
-                directories.append(dir_txt_ref)
-                dir_txt_img = os.path.join(dir_txt, 'images')
-                directories.append(dir_txt_img)
-                dir_txt_img_textures = os.path.join(dir_txt_img, 'source_textures')
-                directories.append(dir_txt_img_textures)
-                dir_txt_img_transfer = os.path.join(dir_txt_img, 'transfer')
-                directories.append(dir_txt_img_transfer)
-                dir_txt_img_transfer_source = os.path.join(dir_txt_img_transfer, 'source')
-                directories.append(dir_txt_img_transfer_source)
-                dir_txt_img_transfer_target = os.path.join(dir_txt_img_transfer, 'target')
-                directories.append(dir_txt_img_transfer_target)
-                dir_txt_misc = os.path.join(dir_txt, 'misc')
-                directories.append(dir_txt_misc)
+                    close_sub_ui(self.asset_creator_ui)
+                    close_sub_ui(self.ui_proxy)
 
-                # create shading directory
-                dir_shd = os.path.join(dir_asset, 'shd')
-                directories.append(dir_shd)
-                dir_shd_pantry = os.path.join(dir_shd, '.pantry')
-                directories.append(dir_shd_pantry)
-                dir_shd_files = os.path.join(dir_shd, 'files')
-                directories.append(dir_shd_files)
-                dir_shd_misc = os.path.join(dir_shd, 'misc')
-                directories.append(dir_shd_misc)
-                dir_shd_renders = os.path.join(dir_shd, 'renders')
-                directories.append(dir_shd_renders)
-                dir_shd_renders_wip = os.path.join(dir_shd_renders, 'wip')
-                directories.append(dir_shd_renders_wip)
-                dir_shd_renders_wip = os.path.join(dir_shd_renders, 'presentation')
-                directories.append(dir_shd_renders_wip)
-                dir_shd_renders_turntable = os.path.join(dir_shd_renders, 'turntables')
-                directories.append(dir_shd_renders_turntable)
+                    if rename_success:
+                        message = "Successfully renamed asset."
 
-                # anim
-                dir_anim = os.path.join(dir_asset, 'anm')
-                directories.append(dir_anim)
-                dir_anim_pantry = os.path.join(dir_anim, '.pantry')
-                directories.append(dir_anim_pantry)
-                dir_anim_export = os.path.join(dir_anim, '_export')
-                directories.append(dir_anim_export)
-                dir_anim_files = os.path.join(dir_anim, 'files')
-                directories.append(dir_anim_files)
+                        assets = self.parent.assets
+                        for i, a in enumerate(assets):
+                            if a == old_asset_name:
+                                assets[i] = asset_name_full
+                                break
 
-                # create references directory
-                dir_ref = os.path.join(dir_asset, 'ref')
-                directories.append(dir_ref)
+                        # self.parent.dd_asset.configure(text=asset_name_full)
+                        self.parent.switch_asset(asset_name_full)
+                        self.parent.disable_unqualified_tools()
 
-                # create pipeline directory
-                dir_pipe = os.path.join(dir_asset, '.pipeline')
-                directories.append(dir_pipe)
-                dir_pipe_mdl = os.path.join(dir_pipe, 'mdl')
-                directories.append(dir_pipe_mdl)
-                dir_pipe_mdl_versions = os.path.join(dir_pipe_mdl, 'versions')
-                directories.append(dir_pipe_mdl_versions)
-                dir_pipe_txt = os.path.join(dir_pipe, 'txt')
-                directories.append(dir_pipe_txt)
-                dir_pipe_shd = os.path.join(dir_pipe, 'shd')
-                directories.append(dir_pipe_shd)
-                dir_pipe_anm = os.path.join(dir_pipe, 'anm')
-                directories.append(dir_pipe_anm)
+                        self.parent.dd_asset.menu.entryconfigure(i, label=asset_name_full)
+                        # self.parent.switch_department('build')
+                    else:
+                        message = "One or multiple files of this asset are in use. Can't rename asset."
+                    messagebox.showinfo(title='', message=message)
+                else:
+                    close_sub_ui(self.asset_creator_ui)
+                    close_sub_ui(self.ui_proxy)
 
-                for directory in directories:
-                    # print(directory)
-                    os.makedirs(directory)
-                    if '.' not in directory.split(os.sep)[-1]:
-                        continue
-                    print()
-                    print(directory)
-                    print(directory.split('/')[-1])
-                    ctypes.windll.kernel32.SetFileAttributesW(directory, 0x02)
+            else:  # create
+                dir_asset = os.path.join(self.directory_build, asset_name_full)
+                directories = [dir_asset]
+                if os.path.isdir(dir_asset) is False:
+                    # create model directory
+                    dir_mdl = os.path.join(dir_asset, 'mdl')
+                    directories.append(dir_mdl)
+                    dir_mdl_pantry = os.path.join(dir_mdl, '.pantry')
+                    directories.append(dir_mdl_pantry)
+                    dir_mdl_export = os.path.join(dir_mdl, '_export')
+                    directories.append(dir_mdl_export)
+                    dir_mdl_variation = os.path.join(dir_mdl_export, 'A')
+                    directories.append(dir_mdl_variation)
+                    dir_mdl_files = os.path.join(dir_mdl, 'files')
+                    directories.append(dir_mdl_files)
+                    dir_mdl_files_zbrush = os.path.join(dir_mdl_files, 'zbrush')
+                    directories.append(dir_mdl_files_zbrush)
+                    dir_mdl_files_blender = os.path.join(dir_mdl_files, 'blender')
+                    directories.append(dir_mdl_files_blender)
+                    dir_mdl_files_maya = os.path.join(dir_mdl_files, 'maya')
+                    directories.append(dir_mdl_files_maya)
+                    dir_mdl_geo = os.path.join(dir_mdl, 'geo')
+                    directories.append(dir_mdl_geo)
+                    dir_mdl_geo_blender = os.path.join(dir_mdl_geo, 'blender_out')
+                    directories.append(dir_mdl_geo_blender)
+                    dir_mdl_geo_maya = os.path.join(dir_mdl_geo, 'maya_out')
+                    directories.append(dir_mdl_geo_maya)
+                    dir_mdl_geo_zbrush = os.path.join(dir_mdl_geo, 'zbrush_out')
+                    directories.append(dir_mdl_geo_zbrush)
+                    dir_mdl_misc = os.path.join(dir_mdl, 'misc')
+                    directories.append(dir_mdl_misc)
+                    dir_mdl_ref = os.path.join(dir_mdl, 'ref')
+                    directories.append(dir_mdl_ref)
+                    dir_mdl_renders = os.path.join(dir_mdl, 'renders')
+                    directories.append(dir_mdl_renders)
+                    dir_mdl_renders_turntables = os.path.join(dir_mdl_renders, 'turntables')
+                    directories.append(dir_mdl_renders_turntables)
 
-                # Update Dropdown in main class
-                self.parent.dd_asset.menu.add_command(label=asset_name_full,
-                                                      command=lambda x=asset_name_full: self.parent.switch_asset(x))
-                self.parent.switch_asset(asset_name_full)
+                    # create texture directory
+                    dir_txt = os.path.join(dir_asset, 'txt')
+                    directories.append(dir_txt)
+                    dir_txt_export = os.path.join(dir_txt, '_export')
+                    directories.append(dir_txt_export)
+                    dir_txt_export_a = os.path.join(dir_txt_export, 'A')
+                    directories.append(dir_txt_export_a)
+                    dir_txt_pantry = os.path.join(dir_txt, '.pantry')
+                    directories.append(dir_txt_pantry)
+                    dir_txt_renders = os.path.join(dir_txt, 'renders')
+                    directories.append(dir_txt_renders)
+                    dir_txt_renders_turntables = os.path.join(dir_txt_renders, 'turntables')
+                    directories.append(dir_txt_renders_turntables)
+                    dir_txt_files = os.path.join(dir_txt, 'files')
+                    directories.append(dir_txt_files)
+                    dir_txt_files_blender = os.path.join(dir_txt_files, 'blender')
+                    directories.append(dir_txt_files_blender)
+                    dir_txt_files_mari = os.path.join(dir_txt_files, 'mari')
+                    directories.append(dir_txt_files_mari)
+                    dir_txt_files_substance_painter = os.path.join(dir_txt_files, 'substance_painter')
+                    directories.append(dir_txt_files_substance_painter)
+                    dir_txt_files_photoshop = os.path.join(dir_txt_files, 'photoshop')
+                    directories.append(dir_txt_files_photoshop)
+                    dir_txt_files_zbrush = os.path.join(dir_txt_files, 'zbrush')
+                    directories.append(dir_txt_files_zbrush)
+                    dir_txt_geo = os.path.join(dir_txt, 'geo')
+                    directories.append(dir_txt_geo)
+                    dir_txt_geo_blender = os.path.join(dir_txt_geo, 'blender_out')
+                    directories.append(dir_txt_geo_blender)
+                    dir_txt_geo_zbrush = os.path.join(dir_txt_geo, 'zbrush_out')
+                    directories.append(dir_txt_geo_zbrush)
+                    dir_txt_geo_maya = os.path.join(dir_txt_geo, 'maya_out')
+                    directories.append(dir_txt_geo_maya)
+                    dir_txt_ref = os.path.join(dir_txt, 'ref')
+                    directories.append(dir_txt_ref)
+                    dir_txt_img = os.path.join(dir_txt, 'images')
+                    directories.append(dir_txt_img)
+                    dir_txt_img_textures = os.path.join(dir_txt_img, 'source_textures')
+                    directories.append(dir_txt_img_textures)
+                    dir_txt_img_transfer = os.path.join(dir_txt_img, 'transfer')
+                    directories.append(dir_txt_img_transfer)
+                    dir_txt_img_transfer_source = os.path.join(dir_txt_img_transfer, 'source')
+                    directories.append(dir_txt_img_transfer_source)
+                    dir_txt_img_transfer_target = os.path.join(dir_txt_img_transfer, 'target')
+                    directories.append(dir_txt_img_transfer_target)
+                    dir_txt_misc = os.path.join(dir_txt, 'misc')
+                    directories.append(dir_txt_misc)
 
-                close_sub_ui(self.asset_creator_ui)
-                close_sub_ui(self.ui_proxy)
+                    # create shading directory
+                    dir_shd = os.path.join(dir_asset, 'shd')
+                    directories.append(dir_shd)
+                    dir_shd_pantry = os.path.join(dir_shd, '.pantry')
+                    directories.append(dir_shd_pantry)
+                    dir_shd_files = os.path.join(dir_shd, 'files')
+                    directories.append(dir_shd_files)
+                    dir_shd_files_blender = os.path.join(dir_shd_files, 'blender')
+                    directories.append(dir_shd_files_blender)
+                    dir_shd_misc = os.path.join(dir_shd, 'misc')
+                    directories.append(dir_shd_misc)
+                    dir_shd_renders = os.path.join(dir_shd, 'renders')
+                    directories.append(dir_shd_renders)
+                    dir_shd_renders_wip = os.path.join(dir_shd_renders, 'wip')
+                    directories.append(dir_shd_renders_wip)
+                    dir_shd_renders_wip = os.path.join(dir_shd_renders, 'presentation')
+                    directories.append(dir_shd_renders_wip)
+                    dir_shd_renders_turntable = os.path.join(dir_shd_renders, 'turntables')
+                    directories.append(dir_shd_renders_turntable)
 
-                message = "Successfully created asset directory."
-                messagebox.showinfo(title='', message=message)
+                    # anim
+                    dir_anim = os.path.join(dir_asset, 'anm')
+                    directories.append(dir_anim)
+                    dir_anim_pantry = os.path.join(dir_anim, '.pantry')
+                    directories.append(dir_anim_pantry)
+                    dir_anim_export = os.path.join(dir_anim, '_export')
+                    directories.append(dir_anim_export)
+                    dir_anim_files = os.path.join(dir_anim, 'files')
+                    directories.append(dir_anim_files)
 
-            else:
-                message = "Asset already exists."
-                messagebox.showerror(title='Error', message=message)
+                    # create references directory
+                    dir_ref = os.path.join(dir_asset, 'ref')
+                    directories.append(dir_ref)
+
+                    # create pipeline directory
+                    dir_pipe = os.path.join(dir_asset, '.pipeline')
+                    directories.append(dir_pipe)
+                    dir_pipe_mdl = os.path.join(dir_pipe, 'mdl')
+                    directories.append(dir_pipe_mdl)
+                    dir_pipe_mdl_versions = os.path.join(dir_pipe_mdl, 'versions')
+                    directories.append(dir_pipe_mdl_versions)
+                    dir_pipe_txt = os.path.join(dir_pipe, 'txt')
+                    directories.append(dir_pipe_txt)
+                    dir_pipe_shd = os.path.join(dir_pipe, 'shd')
+                    directories.append(dir_pipe_shd)
+                    dir_pipe_anm = os.path.join(dir_pipe, 'anm')
+                    directories.append(dir_pipe_anm)
+
+                    for directory in directories:
+                        # print(directory)
+                        os.makedirs(directory)
+                        if '.' not in directory.split(os.sep)[-1]:
+                            continue
+                        print()
+                        print(os.path.abspath(directory))
+                        #print(directory.split('/')[-1])
+                        ctypes.windll.kernel32.SetFileAttributesW(directory, 0x02)  # hides directories with '.' in name
+
+                    # Update Dropdown in main class
+                    #self.parent.dd_asset.menu.add_command(label=asset_name_full,
+                    #                                      command=lambda x=asset_name_full: self.parent.switch_asset(x))
+                    self.parent.assets.append(asset_name_full)
+                    self.parent.assets.sort()
+                    self.parent.switch_asset(asset_name_full)
+                    self.parent.switch_discipline('mdl')
+
+                    close_sub_ui(self.asset_creator_ui)
+                    close_sub_ui(self.ui_proxy)
+
+                    message = "Successfully created asset directory."
+                    messagebox.showinfo(title='', message=message)
+
+                else:
+                    message = "Asset already exists."
+                    messagebox.showerror(title='Error', message=message)
         else:
             message = "No name given."
             messagebox.showerror(title='Error', message=message)
@@ -769,6 +899,27 @@ class AssetCreator:
         self.ui_child.deiconify()
         self.ui_proxy.iconify()
 
+    def edit_mode_load(self):
+        print(self.parent.current_asset)
+        asset_full = self.parent.current_asset
+        asset_type = asset_full[0:3]
+        asset_name = asset_full[3:]
+        print(asset_type)
+        print(asset_name)
+
+        if asset_type == 'prp':
+            asset_type = 'prop'
+        elif asset_type == 'env':
+            asset_type = 'environment'
+        elif asset_type == 'veh':
+            asset_type = 'vehicle'
+        else:
+            asset_type = 'character'
+
+        self.tkvar_name.set(asset_name)
+        self.dd_type.configure(text=asset_type)
+        self.current_type = asset_type
+
     def create_ui(self, directory, parent):
         self.parent = parent
         self.directory_build = directory
@@ -779,10 +930,11 @@ class AssetCreator:
         self.asset_creator_ui = Toplevel()
         self.asset_creator_ui.lift()
         self.asset_creator_ui.iconbitmap(r'.\ui\icon_pipe.ico')
-        self.asset_creator_ui.title('Asset Creator')
+        title = 'Asset Editor' if self.edit_mode else 'Asset Creator'
+        self.asset_creator_ui.title(title)
         self.asset_creator_ui.attributes("-alpha", 0.0)
         self.asset_creator_ui.geometry(dimensions)
-        ui_title_bar(self, self.ui_proxy, self.asset_creator_ui, 'Asset Creator', r'.\ui\icon_pipe_white_PNG_s.png',
+        ui_title_bar(self, self.ui_proxy, self.asset_creator_ui, title, r'.\ui\icon_pipe_white_PNG_s.png',
                      self.col_wdw_title)
 
         self.asset_creator_ui.resizable(width=False, height=True)
@@ -839,9 +991,24 @@ class AssetCreator:
         # ---------------------------------------------------------------------------------------------
         self.asset_creator_ui.geometry('')
 
-        self.asset_creator_ui.attributes("-alpha", 1.0)
-        self.asset_creator_ui.wm_attributes("-topmost", 1)
-        self.asset_creator_ui.mainloop()
+        if self.edit_mode:
+            self.edit_mode_load()
+            message = 'EXPERIMENTAL!\n\n' \
+                      'This tool will rename all files of this asset, but will not replace any references.\n\n' \
+                      'Renaming assets should be avoided if possible. ' \
+                      'Models will need to be republished and manually replaced in shading. ' \
+                      'Close any asset related files before you continue.\n\n' \
+                      'Do you want to continue?'
+            answer = messagebox.askquestion(title='', message=message)
+            # if answer == 'no':
+            #    close_sub_ui(self.asset_creator_ui)
+        else:
+            answer = 'yes'
+
+        if answer == 'yes':
+            self.asset_creator_ui.attributes("-alpha", 1.0)
+            self.asset_creator_ui.wm_attributes("-topmost", 1)
+            self.asset_creator_ui.mainloop()
 
 
 class ProjectDuplicator:
@@ -919,6 +1086,7 @@ class ProjectDuplicator:
         self.parent.project_names = [x[0] for x in self.parent.projects_parts]
         self.parent.project_abbreviations = [x[1] for x in self.parent.projects_parts]
         self.parent.switch_project(name)
+        self.parent.disable_unqualified_tools()
 
         close_sub_ui(self.project_duplicator_ui)
         close_sub_ui(self.ui_proxy)
@@ -962,12 +1130,10 @@ class ProjectDuplicator:
         frame = Frame(self.project_duplicator_ui, bg=self.col_wdw_default)
         frame.pack(fill=X, padx=self.default_padding, pady=2 * self.default_padding)
         # ---------------------------------------------------------------------------------------------
-        lbl_name = Label(frame, bd=1, text='New Name',
-                         bg=self.col_wdw_default, fg=self.col_bt_fg_default)
+        lbl_name = Label(frame, bd=1, text='New Name', bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         lbl_name.grid(row=0, column=0, sticky=W, padx=self.default_padding, pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
-        lbl_abbr = Label(frame, bd=1, text='New Abbreviation',
-                         bg=self.col_wdw_default, fg=self.col_bt_fg_default)
+        lbl_abbr = Label(frame, bd=1, text='New Abbreviation', bg=self.col_wdw_default, fg=self.col_bt_fg_default)
         lbl_abbr.grid(row=1, column=0, sticky=W, padx=self.default_padding, pady=self.default_padding)
         # ---------------------------------------------------------------------------------------------
         lbl_root = Label(frame, bd=1, text='New Root',

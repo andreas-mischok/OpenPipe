@@ -104,10 +104,10 @@ class ReleaseTextures:
                     if os.path.isfile(os.path.join(dir_pipe_variation, 'txt_package', x))]
         if os.path.isfile(full_path) is False:
             dict_connections = {}
-            for key in self.connections_default:
+            for key in self.connections_default['channels']:
                 #print(self.connections_default[key])
-                if self.connections_default[key] in channels:
-                    dict_connections[key] = self.connections_default[key]
+                if self.connections_default['channels'][key] in channels:
+                    dict_connections[key] = self.connections_default['channels'][key]
                 else:
                     dict_connections[key] = ''
 
@@ -119,13 +119,13 @@ class ReleaseTextures:
 
             for key in dict_connections:
                 if dict_connections[key] == '':
-                    if self.connections_default[key] in channels:
-                        dict_connections[key] = self.connections_default[key]
+                    if self.connections_default['channels'][key] in channels:
+                        dict_connections[key] = self.connections_default['channels'][key]
             with open(full_path, 'w') as json_output_channel:
                 json.dump(dict_connections, json_output_channel, indent=2)
 
     def release_textures(self):
-        skip_copy = True
+        skip_copy = False
         self.publish = self.var_publish.get()
         self.overwrite = self.var_overwrite.get()
 
@@ -209,6 +209,7 @@ class ReleaseTextures:
 
                                 files_previous = [x for x in os.listdir(dir_version_previous)
                                                   if os.path.isfile(os.path.join(dir_version_previous, x))]
+
                                 textures_missing_udims = [x for x in files_previous
                                                           if x.split('.')[-2] not in udims_new]
                                 if skip_copy is False:
@@ -313,7 +314,7 @@ class ReleaseTextures:
         ui_texture_release.iconbitmap(r'.\ui\icon_pipe.ico')
         ui_texture_release.title('Release Textures')
         ui_texture_release.geometry('+420+100')
-        ui_title_bar(self, self.ui_proxy, ui_texture_release, 'Release Textures', r'.\ui\icon_pipe_white_PNG_s.png',
+        ui_title_bar(self, self.ui_proxy, ui_texture_release, 'Release Textures', r'../ui/icon_pipe_white_PNG_s.png',
                      self.col_wdw_title)
 
         ui_texture_release.resizable(width=True, height=True)

@@ -22,7 +22,7 @@ class PackageManager:
             self.dd_txt_variation = self.dir_pipe_txt_package = self.frame_txt = self.frame_shd = self.shd_items = \
             self.dir_pipe_shd_versions = self.file_shd_package = self.dict_shd_package = self.shd_version_current = \
             self.shd_versions = self.dd_shd_version = self.shd_variations = self.tkvar_publish_shd = \
-            self.ui_elements_shading = None
+            self.ui_elements_shading = self.col_bt_bg_default_highlight = None
 
         self.mdl_variation_combinations = {}
         self.shd_variations_elements = {}
@@ -278,7 +278,7 @@ class PackageManager:
                 text = "This model variation exists in the current MDL package."
             else:
                 text = "This model variation is not in the current MDL package."
-            CreateToolTip(label_variation, text)
+            CreateToolTip(label_variation, text, None, None, False)
 
             tkvar_txt_vars = StringVar()
             tkvar_txt_vars.set(dict_variations[variation])
@@ -290,10 +290,11 @@ class PackageManager:
             i_txt_vars.grid(row=row, column=2*column+1, sticky=NSEW, padx=self.default_padding,
                             pady=self.default_padding)
             CreateToolTip(i_txt_vars,
-                          f"Texture variations used in conjunction with model variation {variation}.\n\n"
+                          #f"Texture variations used in conjunction with model variation {variation}.\n\n"
+                          f"Texture variations that this model variation ({variation}) will be available to.\n\n"
                           f"Example: ABCDE\n"
                           f"* = use all variations\n"
-                          f"No commas used for separation!")
+                          f"No commas used for separation!", None, None, False)
 
             self.mdl_variation_combinations[variation] = tkvar_txt_vars
 
@@ -338,7 +339,7 @@ class PackageManager:
 
         publish_text = '                    '
         if published is True and self.parent.current_discipline == 'shd':
-            publish_text = 'previously published'
+            publish_text = 'previously pushed'
 
         text = '         '.join([shd_version, artist, time, publish_text])
 
@@ -369,112 +370,137 @@ class PackageManager:
             self.dd_mdl_version.menu.add_command(label=text, command=lambda x=mdl_version, y=dict_mdl_version:
                                                  self.ui_switch_mdl_version(x, y))
 
+    def on_bt_enter_grey(self, e):
+        if e.widget["state"] in [NORMAL, ACTIVE]:
+            e.widget['background'] = self.col_bt_bg_default_highlight
+
+    def on_bt_leave_grey(self, e):
+        if e.widget["state"] in [NORMAL, ACTIVE]:
+            e.widget['background'] = self.col_bt_bg_default
+
+    def on_bt_enter_green(self, e):
+        if e.widget["state"] in [NORMAL, ACTIVE]:
+            e.widget['background'] = self.col_bt_bg_green_highlight
+
+    def on_bt_leave_green(self, e):
+        if e.widget["state"] in [NORMAL, ACTIVE]:
+            e.widget['background'] = self.col_bt_bg_green
+
     def ui_items_shd(self):
         if self.ui_elements_shading is not None:
             for item in self.ui_elements_shading:
                 item.destroy()
 
-        # --- Label SHD -------------------------------------------------------------------------------
-        lbl_shd = Label(self.frame_shd, bd=1, text='SHD Package', anchor=W, justify=LEFT,
-                        bg=self.col_wdw_default, fg=self.col_bt_fg_default)
-        lbl_shd.grid(row=0, column=0, sticky=W, columnspan=1, padx=3*self.default_padding, pady=self.default_padding)
+        if len(os.listdir(self.parent.dir_pipeline_shd)) != 0:
+            # --- Label SHD -------------------------------------------------------------------------------
+            lbl_shd = Label(self.frame_shd, bd=1, text='SHD Package', anchor=W, justify=LEFT,
+                            bg=self.col_wdw_default, fg=self.col_bt_fg_default)
+            lbl_shd.grid(row=0, column=0, sticky=W, columnspan=1, padx=3*self.default_padding, pady=self.default_padding)
 
-        self.frame_shd.columnconfigure(3, weight=1)
-        # --- DD SHD version --------------------------------------------------------------------------
-        frame_shd_variations = Frame(self.frame_shd, bg=self.col_wdw_title)
-        frame_shd_variations.grid(row=1, column=0, sticky=NSEW, columnspan=6, padx=3*self.default_padding,
-                                  pady=self.default_padding)
+            self.frame_shd.columnconfigure(3, weight=1)
+            # --- DD SHD version --------------------------------------------------------------------------
+            frame_shd_variations = Frame(self.frame_shd, bg=self.col_wdw_title)
+            frame_shd_variations.grid(row=1, column=0, sticky=NSEW, columnspan=6, padx=3*self.default_padding,
+                                      pady=self.default_padding)
 
-        self.shd_variations = [x for x in os.listdir(self.parent.dir_pipeline_shd)
-                               if os.path.isdir(os.path.join(self.parent.dir_pipeline_shd, x))]
+            self.shd_variations = [x for x in os.listdir(self.parent.dir_pipeline_shd)
+                                   if os.path.isdir(os.path.join(self.parent.dir_pipeline_shd, x))]
 
-        self.ui_elements_shading = []
-        self.shd_variations_elements.clear()
+            self.ui_elements_shading = []
+            self.shd_variations_elements.clear()
 
-        if len(self.shd_variations) != 0:
-            for i, var in enumerate(self.shd_variations):
-                amount = 10
-                row = int(i / amount)
-                column = i % amount
-                lbl_shd_var = Label(frame_shd_variations, bd=1, text=var, anchor=CENTER, justify=CENTER, #state=state,
-                                    padx=2, width=3,
-                                    bg=self.col_wdw_default, fg=self.col_bt_fg_default)
-                lbl_shd_var.grid(row=row, column=2*column, sticky=NSEW, columnspan=1, padx=self.default_padding,
-                                 pady=self.default_padding)
+            if len(self.shd_variations) != 0:
+                for i, var in enumerate(self.shd_variations):
+                    amount = 10
+                    row = int(i / amount)
+                    column = i % amount
+                    lbl_shd_var = Label(frame_shd_variations, bd=1, text=var, anchor=CENTER, justify=CENTER, #state=state,
+                                        padx=2, width=3,
+                                        bg=self.col_wdw_default, fg=self.col_bt_fg_default)
+                    lbl_shd_var.grid(row=row, column=2*column, sticky=NSEW, columnspan=1, padx=self.default_padding,
+                                     pady=self.default_padding)
 
-                # DD SHD
-                dir_shd_variation = str(os.path.join(self.parent.dir_pipeline_shd, var))
-                dir_pipe_shd_versions = os.path.join(dir_shd_variation, 'versions')
+                    # DD SHD
+                    dir_shd_variation = str(os.path.join(self.parent.dir_pipeline_shd, var))
+                    dir_pipe_shd_versions = os.path.join(dir_shd_variation, 'versions')
 
-                file_shd_package = os.path.join(dir_shd_variation, 'shd_package.json')
+                    file_shd_package = os.path.join(dir_shd_variation, 'shd_package.json')
 
-                with open(file_shd_package, 'r') as json_file:
-                    dict_shd_package = json.load(json_file)
-                shd_version_current = dict_shd_package[self.parent.current_discipline]
+                    with open(file_shd_package, 'r') as json_file:
+                        dict_shd_package = json.load(json_file)
+                    shd_version_current = dict_shd_package[self.parent.current_discipline]
 
-                dd_shd_version = Menubutton(frame_shd_variations, text='', width=4,
-                                            bg=self.col_bt_bg_blue, fg=self.col_bt_fg_default,
-                                            highlightthickness=0, activebackground=self.col_bt_bg_blue_highlight,
-                                            anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
-                                            relief=self.def_bt_relief, justify=RIGHT)
-                dd_shd_version.menu = Menu(dd_shd_version, tearoff=0, bd=0, activeborderwidth=3,
-                                           relief=self.def_bt_relief, bg=self.col_bt_fg_default,
-                                           activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
-                                           activebackground=self.col_bt_bg_blue_highlight)
-                dd_shd_version['menu'] = dd_shd_version.menu
+                    dd_shd_version = Menubutton(frame_shd_variations, text='', width=4,
+                                                bg=self.col_bt_bg_blue, fg=self.col_bt_fg_default,
+                                                highlightthickness=0, activebackground=self.col_bt_bg_blue_highlight,
+                                                anchor=W, activeforeground=self.col_bt_fg_default, bd=1,
+                                                relief=self.def_bt_relief, justify=RIGHT)
+                    dd_shd_version.menu = Menu(dd_shd_version, tearoff=0, bd=0, activeborderwidth=3,
+                                               relief=self.def_bt_relief, bg=self.col_bt_fg_default,
+                                               activeforeground=self.col_bt_fg_default, fg=self.col_bt_bg_default,
+                                               activebackground=self.col_bt_bg_blue_highlight)
+                    dd_shd_version['menu'] = dd_shd_version.menu
 
-                shd_versions = sorted([x.split('.')[1] for x in os.listdir(dir_pipe_shd_versions)])
-                shd_versions.reverse()
+                    shd_versions = sorted([x.split('.')[1] for x in os.listdir(dir_pipe_shd_versions)])
+                    shd_versions.reverse()
 
-                self.shd_variations_elements[var] = {
-                    "current_version": shd_version_current,
-                    "latest_version": shd_versions[0],
-                    "dropdown": dd_shd_version,
-                    "file_shd_package": file_shd_package,
-                    "dir_shd_variation": dir_shd_variation,
-                    "dir_pipe_shd_versions": dir_pipe_shd_versions,
-                    "dict_shd_package": dict_shd_package
-                }
+                    self.shd_variations_elements[var] = {
+                        "current_version": shd_version_current,
+                        "latest_version": shd_versions[0],
+                        "dropdown": dd_shd_version,
+                        "file_shd_package": file_shd_package,
+                        "dir_shd_variation": dir_shd_variation,
+                        "dir_pipe_shd_versions": dir_pipe_shd_versions,
+                        "dict_shd_package": dict_shd_package
+                    }
 
-                for shd_version in shd_versions:
-                    self.dd_add_shd_version(shd_version, var)
+                    for shd_version in shd_versions:
+                        self.dd_add_shd_version(shd_version, var)
 
-                dd_shd_version.grid(row=row, column=2*column+1, sticky=W, columnspan=1, padx=self.default_padding,
-                                    pady=self.default_padding)
+                    dd_shd_version.grid(row=row, column=2*column+1, sticky=W, columnspan=1, padx=self.default_padding,
+                                        pady=self.default_padding)
 
-                self.ui_switch_shd_version(shd_version_current, var)
+                    self.ui_switch_shd_version(shd_version_current, var)
 
-                for item in [dd_shd_version, lbl_shd_var]:
-                    self.ui_elements_shading.append(item)
+                    for item in [dd_shd_version, lbl_shd_var]:
+                        self.ui_elements_shading.append(item)
 
+            # --- PULL BUTTON ------------------------------------------------------------------------------------
+            state = DISABLED if self.parent.current_discipline == 'shd' else NORMAL
+            bt_pull_shd = Button(self.frame_shd, text='Pull', border=self.default_bt_bd, width=6, state=state,
+                                 bg=self.col_bt_bg_default, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
+                                 activebackground=self.col_bt_bg_active, activeforeground=self.col_bt_fg_default,
+                                 command=lambda: self.pull_shd())
+            bt_pull_shd.grid(row=0, column=1, sticky=NSEW, columnspan=1, padx=3 * self.default_padding,
+                             pady=self.default_padding)
+            bt_pull_shd.bind('<Enter>', self.on_bt_enter_grey)
+            bt_pull_shd.bind('<Leave>', self.on_bt_leave_grey)
 
-        # --- PULL BUTTON ------------------------------------------------------------------------------------
-        state = DISABLED if self.parent.current_discipline == 'shd' else NORMAL
-        bt_pull_shd = Button(self.frame_shd, text='Pull', border=self.default_bt_bd, width=6, state=state,
-                             bg=self.col_bt_bg_default, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
-                             activebackground=self.col_bt_bg_active, activeforeground=self.col_bt_fg_default,
-                             command=lambda: self.pull_shd())
-        bt_pull_shd.grid(row=0, column=1, sticky=NSEW, columnspan=1, padx=3 * self.default_padding,
+            # --- MDL PUBLISH CHECKBOX --------------------------------------------------------------------------
+            shd_state = NORMAL if self.parent.current_discipline == 'shd' else DISABLED
+            self.tkvar_publish_shd = BooleanVar()
+            self.tkvar_publish_shd.set(False)
+            cb_publish_shd = Checkbutton(self.frame_shd, text='push', var=self.tkvar_publish_shd, state=shd_state,
+                                         bg=self.col_wdw_default, activebackground=self.col_wdw_default,
+                                         fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
+                                         selectcolor=self.col_bt_bg_active)
+            cb_publish_shd.grid(row=0, column=4, sticky=N, padx=self.default_padding, pady=self.default_padding)
+
+            # --- SHD SAVE BUTTON -------------------------------------------------------------------------------
+            bt_save_shd = Button(self.frame_shd, text='Save', border=self.default_bt_bd, width=8,
+                                 bg=self.col_bt_bg_green, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
+                                 activebackground=self.col_bt_bg_green_highlight,
+                                 activeforeground=self.col_bt_fg_default, command=lambda: self.save_shd())
+            bt_save_shd.grid(row=0, column=5, sticky=NSEW, columnspan=1, padx=3 * self.default_padding,
+                             pady=self.default_padding)
+
+            bt_save_shd.bind('<Enter>', self.on_bt_enter_green)
+            bt_save_shd.bind('<Leave>', self.on_bt_leave_green)
+        else:
+            lbl_mdl = Label(self.frame_shd, bd=1, text='! SHD package not found !', anchor=W, justify=LEFT,
+                            bg=self.col_wdw_title, fg=self.col_bt_fg_default, padx=4, pady=4)
+            lbl_mdl.grid(row=2, column=0, sticky=NSEW, columnspan=1, padx=3*self.default_padding,
                          pady=self.default_padding)
-
-        # --- MDL PUBLISH CHECKBOX --------------------------------------------------------------------------
-        shd_state = NORMAL if self.parent.current_discipline == 'shd' else DISABLED
-        self.tkvar_publish_shd = BooleanVar()
-        self.tkvar_publish_shd.set(False)
-        cb_publish_shd = Checkbutton(self.frame_shd, text='publish', var=self.tkvar_publish_shd, state=shd_state,
-                                     bg=self.col_wdw_default, activebackground=self.col_wdw_default,
-                                     fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
-                                     selectcolor=self.col_bt_bg_active)
-        cb_publish_shd.grid(row=0, column=4, sticky=N, padx=self.default_padding, pady=self.default_padding)
-
-        # --- SHD SAVE BUTTON -------------------------------------------------------------------------------
-        bt_save_shd = Button(self.frame_shd, text='Save', border=self.default_bt_bd, width=8,
-                             bg=self.col_bt_bg_green, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
-                             activebackground=self.col_bt_bg_green_highlight,
-                             activeforeground=self.col_bt_fg_default, command=lambda: self.save_shd())
-        bt_save_shd.grid(row=0, column=5, sticky=NSEW, columnspan=1, padx=3 * self.default_padding,
-                         pady=self.default_padding)
-
     # TODO change colour of change button if anything is not as it currently is set
 
     def ui_items_mdl(self):
@@ -527,9 +553,11 @@ class PackageManager:
             bt_pull_mdl.grid(row=0, column=2, sticky=NSEW, columnspan=1, padx=3*self.default_padding,
                              pady=self.default_padding)
 
+            bt_pull_mdl.bind('<Enter>', self.on_bt_enter_grey)
+            bt_pull_mdl.bind('<Leave>', self.on_bt_leave_grey)
             # --- MDL FRAME FOR PROCEDURAL -----------------------------------------------------------------------
             self.frame_mdl_variations = Frame(self.frame_mdl, bg=self.col_wdw_title)
-            self.frame_mdl_variations.grid(row=1, column=0, sticky=W, columnspan=6,
+            self.frame_mdl_variations.grid(row=1, column=0, sticky=NSEW, columnspan=6,
                                            padx=3 * self.default_padding, pady=2*self.default_padding)
             self.frame_mdl.columnconfigure(3, weight=1)
 
@@ -537,7 +565,7 @@ class PackageManager:
             mdl_state = NORMAL if self.parent.current_discipline == 'mdl' else DISABLED
             self.tkvar_publish_mdl = BooleanVar()
             self.tkvar_publish_mdl.set(False)
-            cb_publish_mdl = Checkbutton(self.frame_mdl, text='publish', var=self.tkvar_publish_mdl, state=mdl_state,
+            cb_publish_mdl = Checkbutton(self.frame_mdl, text='push', var=self.tkvar_publish_mdl, state=mdl_state,
                                          bg=self.col_wdw_default, activebackground=self.col_wdw_default,
                                          fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
                                          selectcolor=self.col_bt_bg_active)
@@ -550,16 +578,25 @@ class PackageManager:
                                  activeforeground=self.col_bt_fg_default, command=lambda: self.save_mdl())
             bt_save_mdl.grid(row=0, column=5, sticky=NSEW, columnspan=1, padx=3*self.default_padding,
                              pady=self.default_padding)
+            bt_save_mdl.bind('<Enter>', self.on_bt_enter_green)
+            bt_save_mdl.bind('<Leave>', self.on_bt_leave_green)
 
             # --- MDL CREATE PROCEDURAL LINES -------------------------------------------------------------------
+
             file_mdl_version = os.path.join(self.dir_pipe_mdl_versions,
                                             f'{self.parent.current_asset}.{self.mdl_version_current}.json')
-            with open(file_mdl_version, 'r') as json_file:
-                dict_mdl_version = json.load(json_file)
-            self.ui_switch_mdl_version(self.mdl_version_current, dict_mdl_version)
+            if os.path.isfile(file_mdl_version):
+                with open(file_mdl_version, 'r') as json_file:
+                    dict_mdl_version = json.load(json_file)
+                self.ui_switch_mdl_version(self.mdl_version_current, dict_mdl_version)
 
-            self.mdl_items = [lbl_mdl, self.dd_mdl_version, bt_pull_mdl,
-                              self.frame_mdl_variations, cb_publish_mdl, bt_save_mdl]
+                self.mdl_items = [lbl_mdl, self.dd_mdl_version, bt_pull_mdl,
+                                  self.frame_mdl_variations, cb_publish_mdl, bt_save_mdl]
+            else:
+                lbl_mdl = Label(self.frame_main, bd=1, text='! No active MDL version for this stream !', anchor=W,
+                                justify=LEFT,
+                                bg=self.col_wdw_title, fg=self.col_bt_fg_default, padx=4, pady=4)
+                lbl_mdl.grid(row=2, column=0, sticky=NSEW, columnspan=1, padx=3*self.default_padding, pady=self.default_padding)
 
         else:
             lbl_mdl = Label(self.frame_main, bd=1, text='! MDL package not found !', anchor=W, justify=LEFT,
@@ -746,10 +783,11 @@ class PackageManager:
 
                 # dir_asset_pipe = os.path.join(dir_build, asset, '.pipeline')
 
-                variations = os.listdir(self.parent.dir_pipeline_txt)  # dir_asset_pipe)
+                variations = os.listdir(self.parent.dir_pipeline_txt.replace(self.parent.current_asset, asset))
+                # dir_asset_pipe)
 
                 for variation in variations:
-                    if variation != self.txt_current_variation:
+                    if variation != self.txt_current_variation or asset != self.parent.current_asset:
                         asset_menu.add_command(label=variation,
                                                command=lambda x=self.parent.dir_pipeline_txt, y=variation,
                                                z=asset: self.ui_txt_channel_picker(x, y, z))
@@ -788,7 +826,8 @@ class PackageManager:
         frame = Frame(self.ui_picker, bg=self.col_wdw_default)
         frame.pack(side=TOP, anchor=NW, fill=BOTH, padx=self.default_padding, pady=self.default_padding)
 
-        dir_txt_package = os.path.join(dir_asset_pipe, variation, 'txt_package')
+        dir_txt_package = os.path.join(dir_asset_pipe, variation, 'txt_package').replace(self.parent.current_asset,
+                                                                                         asset)
 
         channels_json, channels_json_native, _ = txt_package_list_channels(dir_txt_package)
 
@@ -1143,34 +1182,49 @@ class PackageManager:
         dir_export_variation = os.path.join(self.parent.dir_asset, 'txt', '_export', new_variation)
 
         dir_pipe_txt_package = os.path.join(dir_pipe_variation, 'txt_package')
-
-        if os.path.isdir(dir_pipe_variation) or os.path.isdir(dir_export_variation):
+        print("AAAA", dir_pipe_variation, dir_export_variation)
+        if os.path.isdir(dir_pipe_variation) or (os.path.isdir(dir_export_variation) and new_variation != 'A'):
             message = f'Variation {new_variation} already exists.'
             messagebox.showerror(title='Error', message=message)
         else:
             os.makedirs(dir_pipe_txt_package)
-            os.makedirs(dir_export_variation)
+            try:
+                os.makedirs(dir_export_variation)
+            except FileExistsError:
+                pass
 
-            self.switch_txt_variation(new_variation)
+            try:
+                self.switch_txt_variation(new_variation)
+                #close_sub_ui(self.ui_variation_creator)
+                self.dd_txt_variation.menu.add_command(label=new_variation,
+                                                       command=lambda x=new_variation: self.switch_txt_variation(x))
+            except AttributeError:
+                self.ui_items_txt_header()
             close_sub_ui(self.ui_variation_creator)
-            self.dd_txt_variation.menu.add_command(label=new_variation,
-                                                   command=lambda x=new_variation: self.switch_txt_variation(x))
 
     def switch_txt_variation_add(self, letter, dd, t):
         self.current_floating_txt_variation[t] = letter
         dd.config(text=letter)
 
     def ui_items_txt_header(self):
-        # --- Label TXT -------------------------------------------------------------------------------
-        # text = f'{self.parent.current_discipline.upper()}  //  {self.parent.current_asset}'
-        lbl_txt = Label(self.frame_txt, bd=1, text='TXT Package', anchor=W, justify=LEFT,
-                        bg=self.col_wdw_default, fg=self.col_bt_fg_default)
-        lbl_txt.grid(row=0, column=0, sticky=W, columnspan=1, padx=2*self.default_padding, pady=self.default_padding)
+        try:  # rerun after initialising empty txt package
+            for x in [self.lbl_message, self.bt_create_txt_variation]:
+                x.destroy()
+        except AttributeError:
+            pass
 
-        # --- DD TXT version --------------------------------------------------------------------------
         txt_variations = [x for x in os.listdir(self.parent.dir_pipeline_txt) if
                           os.path.isdir(os.path.join(self.parent.dir_pipeline_txt, x))]
         if len(txt_variations) != 0:
+
+            # --- Label TXT -------------------------------------------------------------------------------
+            # text = f'{self.parent.current_discipline.upper()}  //  {self.parent.current_asset}'
+            lbl_txt = Label(self.frame_txt, bd=1, text='TXT Package', anchor=W, justify=LEFT,
+                            bg=self.col_wdw_default, fg=self.col_bt_fg_default)
+            lbl_txt.grid(row=0, column=0, sticky=W, columnspan=1, padx=2 * self.default_padding,
+                         pady=self.default_padding)
+
+            # --- DD TXT version --------------------------------------------------------------------------
             self.dd_txt_variation = Menubutton(self.frame_txt, text=txt_variations[0], width=4,
                                                bg=self.col_bt_bg_blue, fg=self.col_bt_fg_default,
                                                highlightthickness=0, activebackground=self.col_bt_bg_blue_highlight,
@@ -1200,6 +1254,8 @@ class PackageManager:
             bt_pull_txt.grid(row=1, column=2, sticky=NSEW, columnspan=1, padx=2 * self.default_padding,
                              pady=self.default_padding)
 
+            bt_pull_txt.bind('<Enter>', self.on_bt_enter_grey)
+            bt_pull_txt.bind('<Leave>', self.on_bt_leave_grey)
             # --- Headers ---------------------------------------------------------------------------------
             # --- Label Native Channels -------------------------------------------------------------------
             width_boxes = 66
@@ -1215,8 +1271,10 @@ class PackageManager:
             # --- Checkbox publish ------------------------------------------------------------------------
             self.tkvar_publish_txt = BooleanVar()
             self.tkvar_publish_txt.set(False)
-            cb_publish_txt = Checkbutton(self.frame_txt, text='publish', var=self.tkvar_publish_txt, anchor=E,
+            txt_state = NORMAL if self.parent.current_discipline == 'txt' else DISABLED
+            cb_publish_txt = Checkbutton(self.frame_txt, text='push', var=self.tkvar_publish_txt, anchor=E,
                                          bg=self.col_wdw_default, activebackground=self.col_wdw_default,
+                                         state=txt_state,
                                          fg=self.col_bt_fg_default, activeforeground=self.col_bt_fg_default,
                                          selectcolor=self.col_bt_bg_active)
             cb_publish_txt.grid(row=0, column=3, sticky=E, padx=2*self.default_padding, pady=self.default_padding)
@@ -1229,6 +1287,8 @@ class PackageManager:
                                  command=lambda: self.save_txt())
             bt_save_txt.grid(row=0, column=4, sticky=NSEW, columnspan=1, padx=self.default_padding,
                              pady=self.default_padding)
+            bt_save_txt.bind('<Enter>', self.on_bt_enter_green)
+            bt_save_txt.bind('<Leave>', self.on_bt_leave_green)
 
             # --- Frames ----------------------------------------------------------------------------------
             self.frame_txt_left = Frame(self.frame_txt, bg=self.col_wdw_title)
@@ -1250,9 +1310,16 @@ class PackageManager:
             self.switch_txt_variation(txt_variations[0])
 
         else:
-            lbl_message = Label(self.frame_main, bd=1, text='! TXT package not found !', anchor=W, justify=LEFT,
+            self.lbl_message = Label(self.frame_txt, bd=1, text='! TXT package not found !', anchor=W, justify=LEFT,
                                 bg=self.col_wdw_title, fg=self.col_bt_fg_default, padx=4, pady=4)
-            lbl_message.grid(row=4, column=0, sticky=NSEW, columnspan=1, padx=3*self.default_padding,
+            self.lbl_message.grid(row=4, column=0, sticky=NSEW, columnspan=1, padx=3*self.default_padding,
+                             pady=self.default_padding)
+
+            self.bt_create_txt_variation = Button(self.frame_txt, text='+', border=self.default_bt_bd, width=6,
+                                 bg=self.col_bt_bg_default, fg=self.col_bt_fg_default, relief=self.def_bt_relief,
+                                 activebackground=self.col_bt_bg_active, activeforeground=self.col_bt_fg_default,
+                                 command=lambda: self.ui_txt_add_variation())
+            self.bt_create_txt_variation.grid(row=4, column=1, sticky=NSEW, columnspan=1, padx=3 * self.default_padding,
                              pady=self.default_padding)
 
     def save_txt(self):
@@ -1358,7 +1425,8 @@ class PackageManager:
         config = r'.\config\config_release_tool_txt.json'
         with open(config, 'r') as json_file:
             config_file_content = json.load(json_file)
-            connections_default = config_file_content["connections"]
+            connections_default = config_file_content["connections"]["channels"]
+            subchannels_default = config_file_content["connections"]["subchannels"]
 
         dir_txt_package = os.path.join(dir_variation, 'txt_package')
         file_name = 'txt_connections.json'
@@ -1374,20 +1442,33 @@ class PackageManager:
                     dict_connections[key] = connections_default[key]
                 else:
                     dict_connections[key] = ''
+            dict_out = {
+                "channels": dict_connections,
+                "subchannels": subchannels_default
+            }
             with open(full_path, 'w') as json_output_channel:
-                json.dump(dict_connections, json_output_channel, indent=2)
+                json.dump(dict_out, json_output_channel, indent=2)
 
         # file exists already
         else:
             with open(full_path, 'r') as json_output_channel:
-                dict_connections = json.load(json_output_channel)
+                json_content = json.load(json_output_channel)
+                dict_connections = json_content["channels"]
+                if 'subchannels' in json_content.keys():
+                    subchannels = json_content["subchannels"]
+                else:
+                    subchannels = subchannels_default
 
             for key in dict_connections:
                 if dict_connections[key] == '':
                     if connections_default[key] in channels:
                         dict_connections[key] = connections_default[key]
+            dict_out = {
+                "channels": dict_connections,
+                "subchannels": subchannels
+            }
             with open(full_path, 'w') as json_output_channel:
-                json.dump(dict_connections, json_output_channel, indent=2)
+                json.dump(dict_out, json_output_channel, indent=2)
 
     def create_ui_package_manager(self, parent):
         dimensions = '662x103+420+100'
@@ -1423,7 +1504,7 @@ class PackageManager:
 
         # --- MDL PACKAGE -----------------------------------------------------------------------------
         self.frame_mdl = Frame(self.frame_main, bg=self.col_wdw_default)
-        self.frame_mdl.grid(row=2, column=0, sticky=W, columnspan=1, padx=0, pady=2)
+        self.frame_mdl.grid(row=2, column=0, sticky=NSEW, columnspan=1, padx=0, pady=2)
 
         self.ui_items_mdl()
 
@@ -1433,7 +1514,7 @@ class PackageManager:
 
         # --- TXT PACKAGE -----------------------------------------------------------------------------
         self.frame_txt = Frame(self.frame_main, bg=self.col_wdw_default)
-        self.frame_txt.grid(row=4, column=0, sticky=NSEW, columnspan=2, padx=2*self.default_padding, pady=2)
+        self.frame_txt.grid(row=4, column=0, sticky=NSEW, columnspan=1, padx=2*self.default_padding, pady=2)
 
         self.ui_items_txt_header()
 
