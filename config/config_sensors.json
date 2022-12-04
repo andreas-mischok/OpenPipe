@@ -1,0 +1,15 @@
+{
+  "sensors": [
+    "2.35:1 - 35mm - 2880x1226",
+    "4K DCI - 35mm - 4096x2160",
+    "2K DCI - 35mm - 2048x1080",
+    "1440p - Fullframe - 2560x1440",
+    "Full HD - Fullframe - 1920x1080",
+    "3:2 - Fullframe - 2160x1440",
+    "4:3 - Fullframe - 1920x1440",
+    "8x10 - Large Format - 1800x1440",
+    "4x5 - Large Format - 1800x1440",
+    "6x7 - Medium Format - 1680x1440",
+    "6x6 - Medium Format - 1440x1440"
+  ]
+}
